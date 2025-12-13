@@ -23,6 +23,43 @@
         </div>
     </section>
 
+    <!-- Categories Section -->
+    @if(isset($categories) && $categories->count() > 0)
+    <section class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                @foreach($categories as $category)
+                <a href="#" class="group bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="aspect-square bg-gray-100 overflow-hidden">
+                        @if($category->image)
+                            <img 
+                                src="{{ Storage::url($category->image) }}" 
+                                alt="{{ $category->name }}" 
+                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            >
+                        @else
+                            <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-orange-200">
+                                <svg class="w-16 h-16 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="p-4 text-center">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1 group-hover:text-orange-600 transition-colors">
+                            {{ $category->name }}
+                        </h3>
+                        <p class="text-sm text-gray-500">
+                            {{ $category->dishes_count }} {{ $category->dishes_count === 1 ? 'блюдо' : ($category->dishes_count < 5 ? 'блюда' : 'блюд') }}
+                        </p>
+                    </div>
+                </a>
+                @endforeach
+            </div>
+        </div>
+    </section>
+    @endif
+
     <!-- Search Section -->
     <section class="py-8 bg-white shadow-md -mt-8 relative z-10">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

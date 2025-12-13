@@ -22,6 +22,7 @@ class Dish extends Model
         'proteins',
         'fats',
         'carbohydrates',
+        'fiber',
         'sort_order',
     ];
 
@@ -32,6 +33,7 @@ class Dish extends Model
             'proteins' => 'decimal:2',
             'fats' => 'decimal:2',
             'carbohydrates' => 'decimal:2',
+            'fiber' => 'decimal:2',
         ];
     }
 

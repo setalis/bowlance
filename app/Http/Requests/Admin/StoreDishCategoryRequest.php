@@ -23,6 +23,8 @@ class StoreDishCategoryRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255', 'unique:dish_categories,name'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 
@@ -37,6 +39,11 @@ class StoreDishCategoryRequest extends FormRequest
             'name.required' => 'Название категории обязательно для заполнения.',
             'name.unique' => 'Категория с таким названием уже существует.',
             'name.max' => 'Название категории не должно превышать 255 символов.',
+            'image.image' => 'Файл должен быть изображением.',
+            'image.mimes' => 'Изображение должно быть в формате: jpeg, png, jpg, gif или webp.',
+            'image.max' => 'Размер изображения не должен превышать 2 МБ.',
+            'sort_order.integer' => 'Порядок сортировки должен быть целым числом.',
+            'sort_order.min' => 'Порядок сортировки не может быть отрицательным.',
         ];
     }
 }

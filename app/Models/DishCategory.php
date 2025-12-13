@@ -11,7 +11,7 @@ class DishCategory extends Model
     /** @use HasFactory<\Database\Factories\DishCategoryFactory> */
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'image', 'sort_order'];
 
     public function dishes(): HasMany
     {

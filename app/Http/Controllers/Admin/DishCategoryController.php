@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreDishCategoryRequest;
 use App\Http\Requests\Admin\UpdateDishCategoryRequest;
 use App\Models\DishCategory;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class DishCategoryController extends Controller
@@ -17,7 +18,7 @@ class DishCategoryController extends Controller
     public function index(): View
     {
         return view('pages.admin.dish-categories.index', [
-            'categories' => DishCategory::withCount('dishes')->latest()->paginate(15),
+            'categories' => DishCategory::withCount('dishes')->orderBy('sort_order')->orderBy('name')->paginate(15),
         ]);
     }
 
@@ -34,7 +35,13 @@ class DishCategoryController extends Controller
      */
     public function store(StoreDishCategoryRequest $request): RedirectResponse
     {
-        DishCategory::create($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('dish-categories', 'public');
+        }
+
+        DishCategory::create($data);
 
         return to_route('admin.dish-categories.index')
             ->with('status', 'Категория успешно создана.');
@@ -55,7 +62,16 @@ class DishCategoryController extends Controller
      */
     public function update(UpdateDishCategoryRequest $request, DishCategory $dishCategory): RedirectResponse
     {
-        $dishCategory->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('image')) {
+            if ($dishCategory->image) {
+                Storage::disk('public')->delete($dishCategory->image);
+            }
+            $data['image'] = $request->file('image')->store('dish-categories', 'public');
+        }
+
+        $dishCategory->update($data);
 
         return to_route('admin.dish-categories.index')
             ->with('status', 'Категория успешно обновлена.');
@@ -66,6 +82,10 @@ class DishCategoryController extends Controller
      */
     public function destroy(DishCategory $dishCategory): RedirectResponse
     {
+        if ($dishCategory->image) {
+            Storage::disk('public')->delete($dishCategory->image);
+        }
+
         $dishCategory->delete();
 
         return to_route('admin.dish-categories.index')

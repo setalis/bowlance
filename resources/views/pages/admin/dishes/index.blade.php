@@ -58,12 +58,13 @@
                                     <span>•</span>
                                     <span class="font-semibold">{{ number_format($dish->price, 2) }} ₽</span>
                                 </div>
-                                @if($dish->calories || $dish->proteins || $dish->fats || $dish->carbohydrates)
+                                @if($dish->calories || $dish->proteins || $dish->fats || $dish->carbohydrates || $dish->fiber)
                                     <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                         @if($dish->calories)К: {{ $dish->calories }}@endif
                                         @if($dish->proteins) Б: {{ number_format($dish->proteins, 1) }}@endif
                                         @if($dish->fats) Ж: {{ number_format($dish->fats, 1) }}@endif
                                         @if($dish->carbohydrates) У: {{ number_format($dish->carbohydrates, 1) }}@endif
+                                        @if($dish->fiber) Кл: {{ number_format($dish->fiber, 1) }}@endif
                                     </div>
                                 @endif
                             </div>
@@ -148,7 +149,7 @@
                                 <span class="font-semibold">{{ number_format($dish->price, 2) }} ₽</span>
                             </td>
                             <td class="px-4 py-4 text-xs text-gray-600 dark:text-gray-400">
-                                @if($dish->calories || $dish->proteins || $dish->fats || $dish->carbohydrates)
+                                @if($dish->calories || $dish->proteins || $dish->fats || $dish->carbohydrates || $dish->fiber)
                                     <div class="space-y-1">
                                         @if($dish->calories)
                                             <div>К: {{ $dish->calories }} ккал</div>
@@ -161,6 +162,9 @@
                                         @endif
                                         @if($dish->carbohydrates)
                                             <div>У: {{ number_format($dish->carbohydrates, 1) }} г</div>
+                                        @endif
+                                        @if($dish->fiber)
+                                            <div>Кл: {{ number_format($dish->fiber, 1) }} г</div>
                                         @endif
                                     </div>
                                 @else

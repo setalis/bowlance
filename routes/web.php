@@ -2,10 +2,14 @@
 
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\IconPreviewController;
+use App\Models\DishCategory;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('pages.frontend.home', ['title' => 'Главная']);
+    return view('pages.frontend.home', [
+        'title' => 'Главная',
+        'categories' => DishCategory::withCount('dishes')->orderBy('sort_order')->orderBy('name')->get(),
+    ]);
 })->name('home');
 
 Route::get('/dashboard', function () {

@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    use Illuminate\Support\Facades\Storage;
+@endphp
     <x-common.page-breadcrumb pageTitle="Категории блюд">
         <x-slot:breadcrumbs>
             <li>
@@ -35,54 +38,44 @@
             @forelse($categories as $category)
                 <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-dark">
                     <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">
-                                {{ $category->name }}
-                            </h4>
-                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                Блюд в категории: {{ $category->dishes_count }}
-                            </p>
+                        <div class="flex items-start gap-3 flex-1">
+                            @if($category->image)
+                                <img src="{{ Storage::url($category->image) }}" alt="{{ $category->name }}" class="h-16 w-16 flex-shrink-0 rounded-lg object-cover">
+                            @else
+                                <div class="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700">
+                                    <span class="text-xs text-gray-400">Нет фото</span>
+                                </div>
+                            @endif
+                            <div class="flex-1">
+                                <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">
+                                    {{ $category->name }}
+                                </h4>
+                                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                    Блюд в категории: {{ $category->dishes_count }}
+                                </p>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Порядок сортировки: {{ $category->sort_order ?? 0 }}
+                                </p>
+                            </div>
                         </div>
-                        <div class="ml-4">
-                            <x-common.table-dropdown>
-                                <x-slot:button>
-                                    <button
-                                        class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
-                                        <svg class="stroke-current" width="20" height="20" viewBox="0 0 20 20"
-                                            fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path
-                                                d="M10.0003 10.8333C10.4606 10.8333 10.8337 10.4602 10.8337 9.99996C10.8337 9.53972 10.4606 9.16663 10.0003 9.16663C9.54009 9.16663 9.16699 9.53972 9.16699 9.99996C9.16699 10.4602 9.54009 10.8333 10.0003 10.8333Z"
-                                                stroke="" stroke-width="1.5" stroke-linecap="round"
-                                                stroke-linejoin="round" />
-                                            <path
-                                                d="M10.0003 5.00004C10.4606 5.00004 10.8337 4.62694 10.8337 4.16671C10.8337 3.70647 10.4606 3.33337 10.0003 3.33337C9.54009 3.33337 9.16699 3.70647 9.16699 4.16671C9.16699 4.62694 9.54009 5.00004 10.0003 5.00004Z"
-                                                stroke="" stroke-width="1.5" stroke-linecap="round"
-                                                stroke-linejoin="round" />
-                                            <path
-                                                d="M10.0003 16.6667C10.4606 16.6667 10.8337 16.2936 10.8337 15.8334C10.8337 15.3731 10.4606 15 10.0003 15C9.54009 15 9.16699 15.3731 9.16699 15.8334C9.16699 16.2936 9.54009 16.6667 10.0003 16.6667Z"
-                                                stroke="" stroke-width="1.5" stroke-linecap="round"
-                                                stroke-linejoin="round" />
-                                        </svg>
-                                    </button>
-                                </x-slot:button>
-                                <x-slot:content>
-                                    <a href="{{ route('admin.dish-categories.edit', $category) }}"
-                                        class="block rounded-lg px-3 py-2 text-center text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
-                                        Редактировать
-                                    </a>
-                                    <form method="POST"
-                                        action="{{ route('admin.dish-categories.destroy', $category) }}"
-                                        onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');"
-                                        class="block">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                            class="w-full rounded-lg px-3 py-2 text-center text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700">
-                                            Удалить
-                                        </button>
-                                    </form>
-                                </x-slot:content>
-                            </x-common.table-dropdown>
+                        <div class="ml-4 flex gap-2">
+                            <a href="{{ route('admin.dish-categories.edit', $category) }}"
+                                class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                                title="Редактировать">
+                                <span class="w-5 h-5">{!! \App\Helpers\MenuHelper::getIconSvg('edit') !!}</span>
+                            </a>
+                            <form method="POST"
+                                action="{{ route('admin.dish-categories.destroy', $category) }}"
+                                onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');"
+                                class="inline-block">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                    class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 hover:text-red-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-red-400"
+                                    title="Удалить">
+                                    <span class="w-5 h-5">{!! \App\Helpers\MenuHelper::getIconSvg('delete') !!}</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -101,10 +94,16 @@
                 <thead class="bg-cyan-300 dark:bg-gray-800">
                     <tr class="border-b border-gray-200 dark:border-gray-700">
                         <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">
+                            Изображение
+                        </th>
+                        <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">
                             Название
                         </th>
                         <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">
                             Количество блюд
+                        </th>
+                        <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">
+                            Порядок сортировки
                         </th>
                         <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90 text-right">
                             Действия
@@ -114,57 +113,49 @@
                 <tbody>
                     @forelse($categories as $category)
                         <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <td class="px-4 py-4">
+                                @if($category->image)
+                                    <img src="{{ Storage::url($category->image) }}" alt="{{ $category->name }}" class="h-12 w-12 rounded-lg object-cover">
+                                @else
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700">
+                                        <span class="text-xs text-gray-400">Нет фото</span>
+                                    </div>
+                                @endif
+                            </td>
                             <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">
                                 {{ $category->name }}
                             </td>
                             <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
                                 <span class="bg-orange-300/50 rounded-lg px-2 py-1">{{ $category->dishes_count }}</span>
                             </td>
-                            <td class="relative px-4 py-4 text-right">
-                                <x-common.table-dropdown>
-                                    <x-slot:button>
-                                        <button
-                                            class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
-                                            <svg class="stroke-current" width="20" height="20" viewBox="0 0 20 20"
-                                                fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M10.0003 10.8333C10.4606 10.8333 10.8337 10.4602 10.8337 9.99996C10.8337 9.53972 10.4606 9.16663 10.0003 9.16663C9.54009 9.16663 9.16699 9.53972 9.16699 9.99996C9.16699 10.4602 9.54009 10.8333 10.0003 10.8333Z"
-                                                    stroke="" stroke-width="1.5" stroke-linecap="round"
-                                                    stroke-linejoin="round" />
-                                                <path
-                                                    d="M10.0003 5.00004C10.4606 5.00004 10.8337 4.62694 10.8337 4.16671C10.8337 3.70647 10.4606 3.33337 10.0003 3.33337C9.54009 3.33337 9.16699 3.70647 9.16699 4.16671C9.16699 4.62694 9.54009 5.00004 10.0003 5.00004Z"
-                                                    stroke="" stroke-width="1.5" stroke-linecap="round"
-                                                    stroke-linejoin="round" />
-                                                <path
-                                                    d="M10.0003 16.6667C10.4606 16.6667 10.8337 16.2936 10.8337 15.8334C10.8337 15.3731 10.4606 15 10.0003 15C9.54009 15 9.16699 15.3731 9.16699 15.8334C9.16699 16.2936 9.54009 16.6667 10.0003 16.6667Z"
-                                                    stroke="" stroke-width="1.5" stroke-linecap="round"
-                                                    stroke-linejoin="round" />
-                                            </svg>
+                            <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">
+                                {{ $category->sort_order ?? 0 }}
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('admin.dish-categories.edit', $category) }}"
+                                        class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                                        title="Редактировать">
+                                        <span class="w-5 h-5">{!! \App\Helpers\MenuHelper::getIconSvg('edit') !!}</span>
+                                    </a>
+                                    <form method="POST"
+                                        action="{{ route('admin.dish-categories.destroy', $category) }}"
+                                        onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');"
+                                        class="inline-block">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 hover:text-red-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-red-400"
+                                            title="Удалить">
+                                            <span class="w-5 h-5">{!! \App\Helpers\MenuHelper::getIconSvg('delete') !!}</span>
                                         </button>
-                                    </x-slot:button>
-                                    <x-slot:content>
-                                        <a href="{{ route('admin.dish-categories.edit', $category) }}"
-                                            class="block rounded-lg px-3 py-2 text-center text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
-                                            Редактировать
-                                        </a>
-                                        <form method="POST"
-                                            action="{{ route('admin.dish-categories.destroy', $category) }}"
-                                            onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');"
-                                            class="block">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="w-full rounded-lg px-3 py-2 text-center text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700">
-                                                Удалить
-                                            </button>
-                                        </form>
-                                    </x-slot:content>
-                                </x-common.table-dropdown>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                            <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                 Категории не найдены
                             </td>
                         </tr>

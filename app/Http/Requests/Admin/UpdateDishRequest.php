@@ -32,6 +32,7 @@ class UpdateDishRequest extends FormRequest
             'proteins' => ['nullable', 'numeric', 'min:0'],
             'fats' => ['nullable', 'numeric', 'min:0'],
             'carbohydrates' => ['nullable', 'numeric', 'min:0'],
+            'fiber' => ['nullable', 'numeric', 'min:0'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
@@ -63,6 +64,8 @@ class UpdateDishRequest extends FormRequest
             'fats.min' => 'Жиры не могут быть отрицательными.',
             'carbohydrates.numeric' => 'Углеводы должны быть числом.',
             'carbohydrates.min' => 'Углеводы не могут быть отрицательными.',
+            'fiber.numeric' => 'Клетчатка должна быть числом.',
+            'fiber.min' => 'Клетчатка не может быть отрицательной.',
             'sort_order.integer' => 'Порядок должен быть целым числом.',
             'sort_order.min' => 'Порядок не может быть отрицательным.',
         ];

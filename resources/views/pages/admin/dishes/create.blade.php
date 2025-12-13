@@ -74,13 +74,10 @@
                 }
             }
         })">
-        <div class="mb-6">
+        <div class="mb-4">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                 Создание нового блюда
             </h3>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Заполните форму для добавления нового блюда в систему
-            </p>
         </div>
 
         <!-- Сообщение об успехе -->
@@ -91,7 +88,7 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             class="mb-6">
+             class="mb-4">
             <div class="rounded-xl border border-green-500 bg-green-50 p-4 dark:border-green-500/30 dark:bg-green-500/15">
                 <div class="flex items-start gap-3">
                     <div class="-mt-0.5 text-green-500">
@@ -109,19 +106,19 @@
         <!-- Общая ошибка формы -->
         <div x-show="errors.form && errors.form.length > 0" 
              x-transition
-             class="mb-6">
+             class="mb-4">
             <div class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
                 <p class="text-sm text-red-600 dark:text-red-400" x-text="errors.form && errors.form[0] ? errors.form[0] : ''"></p>
             </div>
         </div>
 
-        <form @submit="submitForm" method="POST" action="{{ route('admin.dishes.store') }}" enctype="multipart/form-data" class="space-y-6">
+        <form @submit="submitForm" method="POST" action="{{ route('admin.dishes.store') }}" enctype="multipart/form-data" class="space-y-4">
             @csrf
 
-            <div class="grid gap-6 md:grid-cols-2">
+            <div class="grid gap-4 md:grid-cols-2">
                 <!-- Название блюда -->
                 <div x-error-field>
-                    <label for="name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                    <label for="name" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                         Название блюда <span class="text-red-500">*</span>
                     </label>
                     <input
@@ -145,7 +142,7 @@
 
                 <!-- Цена -->
                 <div x-error-field>
-                    <label for="price" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                    <label for="price" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                         Цена (₽) <span class="text-red-500">*</span>
                     </label>
                     <input
@@ -170,7 +167,7 @@
 
                 <!-- Категория -->
                 <div x-error-field>
-                    <label for="dish_category_id" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                    <label for="dish_category_id" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                         Категория <span class="text-red-500">*</span>
                     </label>
                     <select
@@ -209,7 +206,7 @@
 
                 <!-- Изображение -->
                 <div class="md:col-span-2" x-error-field>
-                    <label for="image" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                    <label for="image" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                         Изображение
                     </label>
                     <input
@@ -226,7 +223,7 @@
                     @error('image')
                         <p class="mt-1.5 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
-                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Форматы: JPEG, PNG, JPG, GIF, WEBP. Максимальный размер: 2 МБ
                     </p>
                 </div>
@@ -254,54 +251,66 @@
                     />
                 </div>
 
-                <!-- Белки -->
-                <div>
-                    <x-forms.input
-                        name="proteins"
-                        label="Белки (г)"
-                        type="number"
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        :value="old('proteins')"
-                    />
-                </div>
-
-                <!-- Жиры -->
-                <div>
-                    <x-forms.input
-                        name="fats"
-                        label="Жиры (г)"
-                        type="number"
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        :value="old('fats')"
-                    />
-                </div>
-
-                <!-- Углеводы -->
-                <div>
-                    <x-forms.input
-                        name="carbohydrates"
-                        label="Углеводы (г)"
-                        type="number"
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        :value="old('carbohydrates')"
-                    />
+                <!-- Пищевая ценность: Белки, Жиры, Углеводы, Клетчатка -->
+                <div class="md:col-span-2">
+                    <div class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-400">Пищевая ценность</div>
+                    <div class="grid gap-4 md:grid-cols-4">
+                        <div>
+                            <x-forms.input
+                                name="proteins"
+                                label="Белки (г)"
+                                type="number"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                :value="old('proteins')"
+                            />
+                        </div>
+                        <div>
+                            <x-forms.input
+                                name="fats"
+                                label="Жиры (г)"
+                                type="number"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                :value="old('fats')"
+                            />
+                        </div>
+                        <div>
+                            <x-forms.input
+                                name="carbohydrates"
+                                label="Углеводы (г)"
+                                type="number"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                :value="old('carbohydrates')"
+                            />
+                        </div>
+                        <div>
+                            <x-forms.input
+                                name="fiber"
+                                label="Клетчатка (г)"
+                                type="number"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                :value="old('fiber')"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Описание -->
                 <div class="md:col-span-2" x-error-field>
-                    <label for="description" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                    <label for="description" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                         Описание
                     </label>
                     <textarea
                         id="description"
                         name="description"
-                        rows="4"
+                        rows="3"
                         placeholder="Введите описание блюда"
                         x-bind:class="errors.description ? 'border-red-500' : ''"
                         class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
@@ -316,7 +325,7 @@
             </div>
 
             <!-- Кнопки действий -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:justify-end">
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end pt-2">
                 <a href="{{ route('admin.dishes.index') }}" class="inline-flex w-full sm:w-auto">
                     <x-ui.button variant="outline" className="w-full sm:w-auto">
                         Отмена
