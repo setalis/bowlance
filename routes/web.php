@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\IconPreviewController;
 use App\Models\DishCategory;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
     return view('pages.frontend.home', [
@@ -11,6 +12,36 @@ Route::get('/', function () {
         'categories' => DishCategory::withCount('dishes')->orderBy('sort_order')->orderBy('name')->get(),
     ]);
 })->name('home');
+
+Route::get('/api/categories/{category}/dishes', function (DishCategory $category) {
+    $dishes = $category->dishes()
+        ->orderBy('sort_order')
+        ->orderBy('name')
+        ->get();
+    
+    return response()->json([
+        'category' => [
+            'id' => $category->id,
+            'name' => $category->name,
+            'image' => $category->image ? Storage::url($category->image) : null,
+        ],
+        'dishes' => $dishes->map(function ($dish) {
+            return [
+                'id' => $dish->id,
+                'name' => $dish->name,
+                'description' => $dish->description,
+                'price' => $dish->price,
+                'image' => $dish->image ? Storage::url($dish->image) : null,
+                'weight_volume' => $dish->weight_volume,
+                'calories' => $dish->calories,
+                'proteins' => $dish->proteins,
+                'fats' => $dish->fats,
+                'carbohydrates' => $dish->carbohydrates,
+                'fiber' => $dish->fiber,
+            ];
+        }),
+    ]);
+})->name('api.categories.dishes');
 
 Route::get('/dashboard', function () {
     return view('dashboard', ['title' => 'Dashboard']);

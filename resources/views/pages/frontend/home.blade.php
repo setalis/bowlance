@@ -1,5 +1,9 @@
 @extends('layouts.frontend')
 
+@php
+    use Illuminate\Support\Facades\Storage;
+@endphp
+
 @section('content')
     <!-- Hero Section -->
     <section class="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-20">
@@ -25,11 +29,17 @@
 
     <!-- Categories Section -->
     @if(isset($categories) && $categories->count() > 0)
-    <section class="py-12 bg-white">
+    <section class="py-20 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 @foreach($categories as $category)
-                <a href="#" class="group bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <button 
+                    type="button" 
+                    data-modal-target="category-modal" 
+                    data-modal-toggle="category-modal"
+                    data-category-id="{{ $category->id }}"
+                    class="group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer text-left w-full"
+                >
                     <div class="aspect-square bg-gray-100 overflow-hidden">
                         @if($category->image)
                             <img 
@@ -53,12 +63,50 @@
                             {{ $category->dishes_count }} {{ $category->dishes_count === 1 ? 'блюдо' : ($category->dishes_count < 5 ? 'блюда' : 'блюд') }}
                         </p>
                     </div>
-                </a>
+                </button>
                 @endforeach
             </div>
         </div>
     </section>
     @endif
+
+    <!-- Modal для отображения блюд категории -->
+    <div id="category-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="category-modal"></div>
+        
+        <div class="relative p-4 w-full max-w-4xl max-h-full z-50">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <!-- Modal header -->
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                    <h3 id="modal-category-name" class="text-xl font-semibold text-gray-900 dark:text-white">
+                        Блюда категории
+                    </h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="category-modal">
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+                <!-- Modal body -->
+                <div class="p-4 md:p-5 space-y-4">
+                    <div id="modal-loading" class="text-center py-8">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                        <p class="mt-2 text-gray-600">Загрузка блюд...</p>
+                    </div>
+                    <div id="modal-content" class="hidden">
+                        <div id="modal-dishes" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Блюда будут загружены через JavaScript -->
+                        </div>
+                    </div>
+                    <div id="modal-empty" class="hidden text-center py-8">
+                        <p class="text-gray-600">В этой категории пока нет блюд</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Search Section -->
     <section class="py-8 bg-white shadow-md -mt-8 relative z-10">
@@ -282,5 +330,106 @@
             </div>
         </div>
     </section>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoryButtons = document.querySelectorAll('[data-category-id]');
+            const modal = document.getElementById('category-modal');
+            const modalCategoryName = document.getElementById('modal-category-name');
+            const modalLoading = document.getElementById('modal-loading');
+            const modalContent = document.getElementById('modal-content');
+            const modalDishes = document.getElementById('modal-dishes');
+            const modalEmpty = document.getElementById('modal-empty');
+
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const categoryId = this.getAttribute('data-category-id');
+                    loadCategoryDishes(categoryId);
+                });
+            });
+
+            function loadCategoryDishes(categoryId) {
+                // Показываем загрузку
+                modalLoading.classList.remove('hidden');
+                modalContent.classList.add('hidden');
+                modalEmpty.classList.add('hidden');
+                modalDishes.innerHTML = '';
+
+                fetch(`/api/categories/${categoryId}/dishes`)
+                    .then(response => response.json())
+                    .then(data => {
+                        modalCategoryName.textContent = data.category.name;
+                        
+                        if (data.dishes.length === 0) {
+                            modalLoading.classList.add('hidden');
+                            modalEmpty.classList.remove('hidden');
+                            return;
+                        }
+
+                        // Очищаем контейнер
+                        modalDishes.innerHTML = '';
+
+                        // Добавляем блюда
+                        data.dishes.forEach(dish => {
+                            const dishCard = createDishCard(dish);
+                            modalDishes.appendChild(dishCard);
+                        });
+
+                        modalLoading.classList.add('hidden');
+                        modalContent.classList.remove('hidden');
+                    })
+                    .catch(error => {
+                        console.error('Ошибка загрузки блюд:', error);
+                        modalLoading.classList.add('hidden');
+                        modalEmpty.classList.remove('hidden');
+                        modalEmpty.innerHTML = '<p class="text-red-600">Ошибка загрузки блюд</p>';
+                    });
+            }
+
+            function createDishCard(dish) {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow';
+                
+                let imageHtml = '';
+                if (dish.image) {
+                    imageHtml = `<img src="${dish.image}" alt="${dish.name}" class="w-full h-48 object-cover rounded-lg mb-3">`;
+                } else {
+                    imageHtml = `<div class="w-full h-48 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg mb-3 flex items-center justify-center">
+                        <svg class="w-16 h-16 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                    </div>`;
+                }
+
+                let nutritionHtml = '';
+                if (dish.calories || dish.proteins || dish.fats || dish.carbohydrates || dish.fiber) {
+                    nutritionHtml = '<div class="flex flex-row gap-2 mt-2 text-xs text-gray-500 space-y-1">';
+                    if (dish.calories) nutritionHtml += `<div>К: ${dish.calories} ккал</div>`;
+                    if (dish.proteins) nutritionHtml += `<div>Б: ${parseFloat(dish.proteins).toFixed(1)} г</div>`;
+                    if (dish.fats) nutritionHtml += `<div>Ж: ${parseFloat(dish.fats).toFixed(1)} г</div>`;
+                    if (dish.carbohydrates) nutritionHtml += `<div>У: ${parseFloat(dish.carbohydrates).toFixed(1)} г</div>`;
+                    if (dish.fiber) nutritionHtml += `<div>Кл: ${parseFloat(dish.fiber).toFixed(1)} г</div>`;
+                    nutritionHtml += '</div>';
+                }
+
+                card.innerHTML = `
+                    ${imageHtml}
+                    <h4 class="text-lg font-semibold text-gray-900 mb-2">${dish.name}</h4>
+                    ${dish.description ? `<p class="text-sm text-gray-600 mb-2">${dish.description}</p>` : ''}
+                    <div class="flex flex-row gap-4 mb-2">
+                        ${dish.weight_volume ? `<p class="text-sm text-gray-700"><span class="font-medium">Вес:</span> ${dish.weight_volume}</p>` : ''}
+                        ${dish.calories ? `<p class="text-sm text-gray-700"><span class="font-medium">Калории:</span> ${dish.calories} ккал</p>` : ''}
+                    </div>
+                    ${nutritionHtml}
+                    
+                    ${dish.price ? `<div class="mt-3 text-lg font-bold text-orange-600">${parseFloat(dish.price).toFixed(2)} ₽</div>` : ''}
+                `;
+
+                return card;
+            }
+        });
+    </script>
+    @endpush
 @endsection
 
