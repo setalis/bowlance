@@ -154,6 +154,8 @@
                 <button 
                     type="button" 
                     id="checkout-button"
+                    data-modal-target="checkout-modal"
+                    data-modal-toggle="checkout-modal"
                     class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg transition-colors"
                 >
                     Оформить заказ
@@ -172,7 +174,7 @@
     </div>
 
     <!-- Modal оформления заказа -->
-    <div id="checkout-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div id="checkout-modal" tabindex="-1" aria-hidden="true" aria-labelledby="checkout-modal-title" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="checkout-modal"></div>
         
@@ -180,7 +182,7 @@
             <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
                 <!-- Modal header -->
                 <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    <h3 id="checkout-modal-title" class="text-xl font-semibold text-gray-900 dark:text-white">
                         Оформление заказа
                     </h3>
                     <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="checkout-modal">
@@ -544,16 +546,24 @@
 
         window.openCartDrawer = function() {
             const drawerInstance = getCartDrawerInstance();
+            const drawer = document.getElementById('cart-drawer');
+            
             if (drawerInstance) {
                 drawerInstance.show();
+                // Убеждаемся, что aria-hidden установлен правильно
+                if (drawer) {
+                    drawer.setAttribute('aria-hidden', 'false');
+                }
             } else {
                 // Fallback - используем data-атрибут для триггера
                 const triggerButton = document.querySelector('[data-drawer-toggle="cart-drawer"]');
                 if (triggerButton) {
                     triggerButton.click();
+                    if (drawer) {
+                        drawer.setAttribute('aria-hidden', 'false');
+                    }
                 } else {
                     // Последний fallback - прямое управление классами
-                    const drawer = document.getElementById('cart-drawer');
                     const backdrop = document.getElementById('cart-drawer-backdrop');
                     if (drawer) {
                         drawer.classList.remove('-translate-x-full');
@@ -569,16 +579,36 @@
 
         window.closeCartDrawer = function() {
             const drawerInstance = getCartDrawerInstance();
+            const drawer = document.getElementById('cart-drawer');
+            
+            // Убираем фокус с элементов внутри drawer перед закрытием
+            if (drawer) {
+                const focusedElement = drawer.querySelector(':focus');
+                if (focusedElement) {
+                    focusedElement.blur();
+                }
+            }
+            
             if (drawerInstance) {
                 drawerInstance.hide();
+                // Устанавливаем aria-hidden после закрытия
+                if (drawer) {
+                    setTimeout(() => {
+                        drawer.setAttribute('aria-hidden', 'true');
+                    }, 100);
+                }
             } else {
                 // Fallback - используем data-атрибут для закрытия
                 const closeButton = document.querySelector('[data-drawer-hide="cart-drawer"]');
                 if (closeButton) {
                     closeButton.click();
+                    if (drawer) {
+                        setTimeout(() => {
+                            drawer.setAttribute('aria-hidden', 'true');
+                        }, 100);
+                    }
                 } else {
                     // Последний fallback - прямое управление классами
-                    const drawer = document.getElementById('cart-drawer');
                     const backdrop = document.getElementById('cart-drawer-backdrop');
                     if (drawer) {
                         drawer.classList.remove('translate-x-0');
@@ -758,19 +788,103 @@
                 });
             });
 
+            // Управление aria-hidden для drawer при изменениях класса
+            const cartDrawer = document.getElementById('cart-drawer');
+            if (cartDrawer) {
+                const drawerObserver = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                            const isHidden = cartDrawer.classList.contains('-translate-x-full') || 
+                                           cartDrawer.classList.contains('hidden');
+                            cartDrawer.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
+                            
+                            // Если drawer закрывается, убираем фокус
+                            if (isHidden) {
+                                const focusedElement = cartDrawer.querySelector(':focus');
+                                if (focusedElement) {
+                                    focusedElement.blur();
+                                }
+                            }
+                        }
+                    });
+                });
+                
+                drawerObserver.observe(cartDrawer, {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+            }
+
             // Обработчик кнопки "Оформить заказ"
             const checkoutButton = document.getElementById('checkout-button');
             if (checkoutButton) {
-                checkoutButton.addEventListener('click', function() {
+                checkoutButton.addEventListener('click', function(e) {
                     if (cart.length === 0) {
+                        e.preventDefault();
+                        e.stopPropagation();
                         alert('Корзина пуста');
-                        return;
+                        return false;
                     }
-                    // Открываем модальное окно оформления заказа
-                    const modal = document.getElementById('checkout-modal');
-                    if (modal) {
-                        modal.classList.remove('hidden');
+                    // Flowbite автоматически откроет модальное окно через data-атрибуты
+                });
+            }
+
+            // Инициализация модального окна через Flowbite API
+            if (window.Flowbite && window.Flowbite.Modal) {
+                const modalElement = document.getElementById('checkout-modal');
+                if (modalElement) {
+                    try {
+                        const modalOptions = {
+                            placement: 'center',
+                            backdrop: 'dynamic',
+                            backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+                            closable: true,
+                            onShow: () => {
+                                modalElement.setAttribute('aria-hidden', 'false');
+                            },
+                            onHide: () => {
+                                modalElement.setAttribute('aria-hidden', 'true');
+                                // Убираем фокус с элементов внутри модального окна
+                                const focusedElement = modalElement.querySelector(':focus');
+                                if (focusedElement) {
+                                    focusedElement.blur();
+                                }
+                            },
+                        };
+                        new window.Flowbite.Modal(modalElement, modalOptions);
+                    } catch (e) {
+                        console.log('Modal already initialized or error:', e);
                     }
+                }
+            }
+
+            // Управление aria-hidden при ручном открытии/закрытии (fallback)
+            const checkoutModal = document.getElementById('checkout-modal');
+            if (checkoutModal) {
+                // Наблюдатель за изменениями класса hidden
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                            const isHidden = checkoutModal.classList.contains('hidden');
+                            checkoutModal.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
+                            
+                            // Если модальное окно открывается, убираем фокус с элементов, которые могут быть скрыты
+                            if (!isHidden) {
+                                // Убеждаемся, что фокус находится на первом интерактивном элементе
+                                setTimeout(() => {
+                                    const firstInput = checkoutModal.querySelector('input, textarea, button');
+                                    if (firstInput && !firstInput.disabled) {
+                                        firstInput.focus();
+                                    }
+                                }, 100);
+                            }
+                        }
+                    });
+                });
+                
+                observer.observe(checkoutModal, {
+                    attributes: true,
+                    attributeFilter: ['class']
                 });
             }
 
@@ -828,10 +942,7 @@
                             updateCartDisplay();
                             
                             // Закрываем модальное окно и drawer
-                            const modal = document.getElementById('checkout-modal');
-                            if (modal) {
-                                modal.classList.add('hidden');
-                            }
+                            window.closeCheckoutModal();
                             window.closeCartDrawer();
                             
                             // Показываем сообщение об успехе
@@ -859,15 +970,34 @@
                 });
             }
 
-            // Закрытие модального окна через backdrop
-            const checkoutModal = document.getElementById('checkout-modal');
-            if (checkoutModal) {
-                checkoutModal.addEventListener('click', function(e) {
-                    if (e.target === checkoutModal) {
-                        checkoutModal.classList.add('hidden');
+            // Функция для закрытия модального окна
+            window.closeCheckoutModal = function() {
+                const modal = document.getElementById('checkout-modal');
+                if (modal) {
+                    if (window.Flowbite && window.Flowbite.getInstance) {
+                        const modalInstance = window.Flowbite.getInstance('modal', 'checkout-modal');
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        } else {
+                            modal.classList.add('hidden');
+                            modal.setAttribute('aria-hidden', 'true');
+                            // Убираем фокус с элементов внутри модального окна
+                            const focusedElement = modal.querySelector(':focus');
+                            if (focusedElement) {
+                                focusedElement.blur();
+                            }
+                        }
+                    } else {
+                        modal.classList.add('hidden');
+                        modal.setAttribute('aria-hidden', 'true');
+                        // Убираем фокус с элементов внутри модального окна
+                        const focusedElement = modal.querySelector(':focus');
+                        if (focusedElement) {
+                            focusedElement.blur();
+                        }
                     }
-                });
-            }
+                }
+            };
 
             categoryButtons.forEach(button => {
                 button.addEventListener('click', function() {

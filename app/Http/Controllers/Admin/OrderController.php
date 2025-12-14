@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreOrderRequest;
 use App\Http\Requests\Admin\UpdateOrderRequest;
+use App\Models\Dish;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -81,19 +82,81 @@ class OrderController extends Controller
     }
 
     /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Order $order): View
+    {
+        $order->load('items');
+        $dishes = Dish::orderBy('name')->get();
+
+        return view('pages.admin.orders.edit', [
+            'order' => $order,
+            'dishes' => $dishes,
+        ]);
+    }
+
+    /**
      * Update the specified resource in storage.
      */
     public function update(UpdateOrderRequest $request, Order $order): RedirectResponse
     {
         $data = $request->validated();
 
+        // Если обновляется только статус (быстрое изменение через select)
+        if (count($data) === 1 && isset($data['status'])) {
+            if ($data['status'] === 'completed' && $order->status !== 'completed') {
+                $order->update([
+                    'status' => $data['status'],
+                    'completed_at' => now(),
+                ]);
+            } else {
+                $order->update(['status' => $data['status']]);
+            }
+
+            return to_route('admin.orders.index')
+                ->with('status', 'Статус заказа успешно обновлен.');
+        }
+
+        // Полное обновление заказа (из формы редактирования)
         if ($data['status'] === 'completed' && $order->status !== 'completed') {
             $data['completed_at'] = now();
+        }
+
+        // Если пересчитываем товары
+        if (isset($data['items'])) {
+            $total = 0;
+            foreach ($data['items'] as $item) {
+                $total += $item['price'] * $item['quantity'];
+            }
+            $data['total'] = $total;
+
+            // Удаляем старые товары и создаем новые
+            $order->items()->delete();
+            foreach ($data['items'] as $item) {
+                $order->items()->create([
+                    'dish_id' => $item['dish_id'],
+                    'dish_name' => $item['dish_name'],
+                    'price' => $item['price'],
+                    'quantity' => $item['quantity'],
+                ]);
+            }
+            unset($data['items']);
         }
 
         $order->update($data);
 
         return to_route('admin.orders.index')
             ->with('status', 'Заказ успешно обновлен.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Order $order): RedirectResponse
+    {
+        $order->delete();
+
+        return to_route('admin.orders.index')
+            ->with('status', 'Заказ успешно удален.');
     }
 }

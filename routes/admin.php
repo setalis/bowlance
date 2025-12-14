@@ -18,5 +18,5 @@ Route::group([
     Route::resource('/restaurants', RestaurantController::class);
     Route::resource('/dish-categories', DishCategoryController::class);
     Route::resource('/dishes', DishController::class);
-    Route::resource('/orders', OrderController::class)->only(['index', 'store', 'update']);
+    Route::resource('/orders', OrderController::class)->except(['create', 'show']);
 });

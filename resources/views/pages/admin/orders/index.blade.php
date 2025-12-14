@@ -87,7 +87,23 @@
                                     </td>
                                     <td class="px-4 py-4">
                                         <div class="flex items-center justify-end gap-2">
-                                            <span class="text-xs text-gray-500">{{ $order->created_at->format('d.m.Y H:i') }}</span>
+                                            <a href="{{ route('admin.orders.edit', $order) }}"
+                                                class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                                                title="Редактировать">
+                                                <span class="w-5 h-5">{!! \App\Helpers\MenuHelper::getIconSvg('edit') !!}</span>
+                                            </a>
+                                            <form method="POST"
+                                                action="{{ route('admin.orders.destroy', $order) }}"
+                                                onsubmit="return confirm('Вы уверены, что хотите удалить этот заказ?');"
+                                                class="inline-block">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 hover:text-red-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-red-400"
+                                                    title="Удалить">
+                                                    <span class="w-5 h-5">{!! \App\Helpers\MenuHelper::getIconSvg('delete') !!}</span>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
@@ -121,7 +137,7 @@
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Товары</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Сумма</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Дата выполнения</th>
-                                <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90 text-right">Дата заказа</th>
+                                <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90 text-right">Действия</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -142,8 +158,24 @@
                                         {{ $order->completed_at ? $order->completed_at->format('d.m.Y H:i') : '—' }}
                                     </td>
                                     <td class="px-4 py-4">
-                                        <div class="flex items-center justify-end">
-                                            <span class="text-xs text-gray-500">{{ $order->created_at->format('d.m.Y H:i') }}</span>
+                                        <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route('admin.orders.edit', $order) }}"
+                                                class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                                                title="Редактировать">
+                                                <span class="w-5 h-5">{!! \App\Helpers\MenuHelper::getIconSvg('edit') !!}</span>
+                                            </a>
+                                            <form method="POST"
+                                                action="{{ route('admin.orders.destroy', $order) }}"
+                                                onsubmit="return confirm('Вы уверены, что хотите удалить этот заказ?');"
+                                                class="inline-block">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 hover:text-red-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-red-400"
+                                                    title="Удалить">
+                                                    <span class="w-5 h-5">{!! \App\Helpers\MenuHelper::getIconSvg('delete') !!}</span>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
