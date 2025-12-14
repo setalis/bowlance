@@ -56,7 +56,7 @@
                                 <div class="mt-2 flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
                                     <span class="bg-orange-300/50 rounded-lg px-2 py-1">{{ $dish->category->name ?? '—' }}</span>
                                     <span>•</span>
-                                    <span class="font-semibold">{{ number_format($dish->price, 2) }} ₽</span>
+                                    <span class="font-semibold">{{ number_format($dish->price, 2) }} ₾</span>
                                 </div>
                                 @if($dish->calories || $dish->proteins || $dish->fats || $dish->carbohydrates || $dish->fiber)
                                     <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
@@ -146,7 +146,7 @@
                                 <span class="bg-orange-300/50 rounded-lg px-2 py-1">{{ $dish->category->name ?? '—' }}</span>
                             </td>
                             <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                <span class="font-semibold">{{ number_format($dish->price, 2) }} ₽</span>
+                                <span class="font-semibold">{{ number_format($dish->price, 2) }} ₾</span>
                             </td>
                             <td class="px-4 py-4 text-xs text-gray-600 dark:text-gray-400">
                                 @if($dish->calories || $dish->proteins || $dish->fats || $dish->carbohydrates || $dish->fiber)

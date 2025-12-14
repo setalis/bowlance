@@ -47,6 +47,21 @@
                     <a href="#about" class="text-gray-700 hover:text-orange-500 font-medium transition-colors">О нас</a>
                     <a href="#contact" class="text-gray-700 hover:text-orange-500 font-medium transition-colors">Контакты</a>
                     
+                    <!-- Корзина -->
+                    <button 
+                        type="button" 
+                        id="cart-button"
+                        data-drawer-target="cart-drawer"
+                        data-drawer-toggle="cart-drawer"
+                        aria-controls="cart-drawer"
+                        class="relative inline-flex items-center p-2 text-gray-700 hover:text-orange-500 transition-colors"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10V6a3 3 0 0 1 3-3v0a3 3 0 0 1 3 3v4m3-2 .917 11.923A1 1 0 0 1 17.92 21H6.08a1 1 0 0 1-.997-1.077L6 8h12Z"/>
+                        </svg>
+                        <span id="cart-badge" class="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                    </button>
+                    
                     @auth
                         <a href="{{ route('dashboard') }}" class="text-gray-700 hover:text-orange-500 font-medium transition-colors">Личный кабинет</a>
                         <form method="POST" action="{{ route('logout') }}" class="inline">
@@ -59,8 +74,22 @@
                     @endauth
                 </div>
 
-                <!-- Mobile menu button -->
-                <button type="button" class="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-orange-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500" data-collapse-toggle="mobile-menu" aria-controls="mobile-menu" aria-expanded="false">
+                <!-- Mobile menu button and cart -->
+                <div class="md:hidden flex items-center gap-2">
+                    <button 
+                        type="button" 
+                        id="cart-button-mobile"
+                        data-drawer-target="cart-drawer"
+                        data-drawer-toggle="cart-drawer"
+                        aria-controls="cart-drawer"
+                        class="relative inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-orange-500 hover:bg-gray-100"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10V6a3 3 0 0 1 3-3v0a3 3 0 0 1 3 3v4m3-2 .917 11.923A1 1 0 0 1 17.92 21H6.08a1 1 0 0 1-.997-1.077L6 8h12Z"/>
+                        </svg>
+                        <span id="cart-badge-mobile" class="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                    </button>
+                    <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-orange-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500" data-collapse-toggle="mobile-menu" aria-controls="mobile-menu" aria-expanded="false">
                     <span class="sr-only">Открыть меню</span>
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>

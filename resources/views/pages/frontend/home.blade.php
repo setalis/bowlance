@@ -108,6 +108,65 @@
         </div>
     </div>
 
+    <!-- Drawer корзины -->
+    <!-- Backdrop -->
+    <div id="cart-drawer-backdrop" class="hidden fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80 z-40" data-drawer-hide="cart-drawer"></div>
+    
+    <div id="cart-drawer" class="fixed top-0 right-0 z-50 h-screen w-full overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-gray-800" tabindex="-1" aria-labelledby="cart-drawer-label" aria-hidden="true">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-5 flex items-center mt-4 relative">
+                <h5 id="cart-drawer-label" class="inline-flex items-center text-xl font-semibold text-gray-900 dark:text-white">
+                    <svg class="w-6 h-6 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10V6a3 3 0 0 1 3-3v0a3 3 0 0 1 3 3v4m3-2 .917 11.923A1 1 0 0 1 17.92 21H6.08a1 1 0 0 1-.997-1.077L6 8h12Z"/>
+                    </svg>
+                    Корзина
+                </h5>
+                <button type="button" data-drawer-hide="cart-drawer" aria-controls="cart-drawer" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg w-10 h-10 absolute top-0 end-0 flex items-center justify-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <svg class="w-6 h-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6"/>
+                    </svg>
+                    <span class="sr-only">Close menu</span>
+                </button>
+            </div>
+            
+            <div id="cart-content" class="pb-40">
+            <div id="cart-empty" class="text-center py-8">
+                <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10V6a3 3 0 0 1 3-3v0a3 3 0 0 1 3 3v4m3-2 .917 11.923A1 1 0 0 1 17.92 21H6.08a1 1 0 0 1-.997-1.077L6 8h12Z"/>
+                </svg>
+                <p class="text-gray-600 dark:text-gray-400">Корзина пуста</p>
+            </div>
+                <div id="cart-items" class="hidden space-y-4">
+                    <!-- Товары будут добавлены через JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="cart-footer" class="hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700 shadow-lg">
+            <div class="max-w-4xl mx-auto">
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-lg font-semibold text-gray-900 dark:text-white">Итого:</span>
+                    <span id="cart-total" class="text-xl font-bold text-orange-600">0 ₾</span>
+                </div>
+            </div>
+            <div class="flex flex-col gap-3">
+                <button type="button" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg transition-colors">
+                    Оформить заказ
+                </button>
+                <button 
+                    type="button" 
+                    data-drawer-hide="cart-drawer"
+                    class="w-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold px-4 py-3 rounded-lg transition-colors"
+                >
+                    Продолжить покупки
+                </button>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
     <!-- Search Section -->
     <section class="py-8 bg-white shadow-md -mt-8 relative z-10">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -333,6 +392,227 @@
 
     @push('scripts')
     <script>
+        // Управление корзиной
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+        function saveCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartDisplay();
+        }
+
+        function addToCart(dish) {
+            const existingItem = cart.find(item => item.id === dish.id);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({
+                    id: dish.id,
+                    name: dish.name,
+                    price: parseFloat(dish.price) || 0,
+                    image: dish.image || '',
+                    quantity: 1
+                });
+            }
+            saveCart();
+            // Открываем drawer корзины
+            window.openCartDrawer();
+        }
+
+        function updateQuantity(dishId, change) {
+            const item = cart.find(item => item.id === dishId);
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    cart = cart.filter(item => item.id !== dishId);
+                }
+                saveCart();
+            }
+        }
+
+        function removeFromCart(dishId) {
+            cart = cart.filter(item => item.id !== dishId);
+            saveCart();
+        }
+
+        function getCartTotal() {
+            return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+        }
+
+        // Получаем экземпляр Drawer из Flowbite
+        function getCartDrawerInstance() {
+            const drawerElement = document.getElementById('cart-drawer');
+            if (!drawerElement) return null;
+            
+            // Flowbite хранит экземпляры в data-атрибуте
+            if (drawerElement._flowbiteDrawer) {
+                return drawerElement._flowbiteDrawer;
+            }
+            
+            // Альтернативный способ - через Flowbite API
+            if (window.Flowbite && window.Flowbite.getInstance) {
+                return window.Flowbite.getInstance('drawer', 'cart-drawer');
+            }
+            
+            return null;
+        }
+
+        window.openCartDrawer = function() {
+            const drawerInstance = getCartDrawerInstance();
+            if (drawerInstance) {
+                drawerInstance.show();
+            } else {
+                // Fallback - используем data-атрибут для триггера
+                const triggerButton = document.querySelector('[data-drawer-toggle="cart-drawer"]');
+                if (triggerButton) {
+                    triggerButton.click();
+                } else {
+                    // Последний fallback - прямое управление классами
+                    const drawer = document.getElementById('cart-drawer');
+                    const backdrop = document.getElementById('cart-drawer-backdrop');
+                    if (drawer) {
+                        drawer.classList.remove('-translate-x-full');
+                        drawer.classList.add('translate-x-0');
+                        drawer.setAttribute('aria-hidden', 'false');
+                        if (backdrop) {
+                            backdrop.classList.remove('hidden');
+                        }
+                    }
+                }
+            }
+        };
+
+        window.closeCartDrawer = function() {
+            const drawerInstance = getCartDrawerInstance();
+            if (drawerInstance) {
+                drawerInstance.hide();
+            } else {
+                // Fallback - используем data-атрибут для закрытия
+                const closeButton = document.querySelector('[data-drawer-hide="cart-drawer"]');
+                if (closeButton) {
+                    closeButton.click();
+                } else {
+                    // Последний fallback - прямое управление классами
+                    const drawer = document.getElementById('cart-drawer');
+                    const backdrop = document.getElementById('cart-drawer-backdrop');
+                    if (drawer) {
+                        drawer.classList.remove('translate-x-0');
+                        drawer.classList.add('-translate-x-full');
+                        drawer.setAttribute('aria-hidden', 'true');
+                        if (backdrop) {
+                            backdrop.classList.add('hidden');
+                        }
+                    }
+                }
+            }
+        };
+
+        function updateCartDisplay() {
+            const cartItems = document.getElementById('cart-items');
+            const cartEmpty = document.getElementById('cart-empty');
+            const cartFooter = document.getElementById('cart-footer');
+            const cartTotal = document.getElementById('cart-total');
+            const cartBadge = document.getElementById('cart-badge');
+            const cartBadgeMobile = document.getElementById('cart-badge-mobile');
+            
+            // Обновляем бейдж корзины
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            if (cartBadge) {
+                if (totalItems > 0) {
+                    cartBadge.textContent = totalItems;
+                    cartBadge.classList.remove('hidden');
+                } else {
+                    cartBadge.classList.add('hidden');
+                }
+            }
+            if (cartBadgeMobile) {
+                if (totalItems > 0) {
+                    cartBadgeMobile.textContent = totalItems;
+                    cartBadgeMobile.classList.remove('hidden');
+                } else {
+                    cartBadgeMobile.classList.add('hidden');
+                }
+            }
+
+            if (cart.length === 0) {
+                cartItems.classList.add('hidden');
+                cartEmpty.classList.remove('hidden');
+                cartFooter.classList.add('hidden');
+            } else {
+                cartItems.classList.remove('hidden');
+                cartEmpty.classList.add('hidden');
+                cartFooter.classList.remove('hidden');
+
+                cartItems.innerHTML = cart.map(item => `
+                    <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        ${item.image ? 
+                            `<img src="${item.image}" alt="${item.name}" class="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg flex-shrink-0">` :
+                            `<div class="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-12 h-12 md:w-16 md:h-16 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </div>`
+                        }
+                        <div class="flex-1 min-w-0">
+                            <h6 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-2">${item.name}</h6>
+                            <p class="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3">${item.price.toFixed(2)} ₾ за шт.</p>
+                            <div class="flex items-center gap-3">
+                                <button 
+                                    type="button" 
+                                    class="decrease-quantity w-10 h-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-lg text-gray-700 dark:text-gray-300"
+                                    data-dish-id="${item.id}"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                                    </svg>
+                                </button>
+                                <span class="w-12 text-center text-base font-medium text-gray-900 dark:text-white">${item.quantity}</span>
+                                <button 
+                                    type="button" 
+                                    class="increase-quantity w-10 h-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-lg text-gray-700 dark:text-gray-300"
+                                    data-dish-id="${item.id}"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <p class="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">${(item.price * item.quantity).toFixed(2)} ₾</p>
+                            <button 
+                                type="button" 
+                                class="remove-from-cart text-red-600 hover:text-red-700 text-sm font-medium"
+                                data-dish-id="${item.id}"
+                            >
+                                Удалить
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                cartTotal.textContent = `${getCartTotal().toFixed(2)} ₾`;
+
+                // Добавляем обработчики событий
+                document.querySelectorAll('.increase-quantity').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        updateQuantity(parseInt(this.getAttribute('data-dish-id')), 1);
+                    });
+                });
+
+                document.querySelectorAll('.decrease-quantity').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        updateQuantity(parseInt(this.getAttribute('data-dish-id')), -1);
+                    });
+                });
+
+                document.querySelectorAll('.remove-from-cart').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        removeFromCart(parseInt(this.getAttribute('data-dish-id')));
+                    });
+                });
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const categoryButtons = document.querySelectorAll('[data-category-id]');
             const modal = document.getElementById('category-modal');
@@ -341,6 +621,56 @@
             const modalContent = document.getElementById('modal-content');
             const modalDishes = document.getElementById('modal-dishes');
             const modalEmpty = document.getElementById('modal-empty');
+
+            // Инициализируем отображение корзины
+            updateCartDisplay();
+            
+            // Flowbite автоматически инициализирует drawer через data-атрибуты
+            // Не нужно дополнительной инициализации
+
+            // Обработчики открытия корзины
+            const cartButton = document.getElementById('cart-button');
+            const cartButtonMobile = document.getElementById('cart-button-mobile');
+            if (cartButton) {
+                cartButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.openCartDrawer();
+                });
+            }
+            if (cartButtonMobile) {
+                cartButtonMobile.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.openCartDrawer();
+                });
+            }
+            
+            // Также обрабатываем клики через data-атрибуты Flowbite
+            document.querySelectorAll('[data-drawer-toggle="cart-drawer"]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    // Flowbite обработает это автоматически, но убедимся что drawer открывается
+                    setTimeout(function() {
+                        const drawer = document.getElementById('cart-drawer');
+                        if (drawer && drawer.classList.contains('-translate-x-full')) {
+                            window.openCartDrawer();
+                        }
+                    }, 100);
+                });
+            });
+
+            // Обработчик закрытия drawer при клике на backdrop
+            const backdrop = document.getElementById('cart-drawer-backdrop');
+            if (backdrop) {
+                backdrop.addEventListener('click', function() {
+                    window.closeCartDrawer();
+                });
+            }
+
+            // Обработчик закрытия drawer через кнопку
+            document.querySelectorAll('[data-drawer-hide="cart-drawer"]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    window.closeCartDrawer();
+                });
+            });
 
             categoryButtons.forEach(button => {
                 button.addEventListener('click', function() {
@@ -374,6 +704,19 @@
                         data.dishes.forEach(dish => {
                             const dishCard = createDishCard(dish);
                             modalDishes.appendChild(dishCard);
+                        });
+
+                        // Добавляем обработчики для кнопок "Заказать"
+                        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const dish = {
+                                    id: parseInt(this.getAttribute('data-dish-id')),
+                                    name: this.getAttribute('data-dish-name'),
+                                    price: parseFloat(this.getAttribute('data-dish-price')),
+                                    image: this.getAttribute('data-dish-image')
+                                };
+                                addToCart(dish);
+                            });
                         });
 
                         modalLoading.classList.add('hidden');
@@ -423,7 +766,19 @@
                     </div>
                     ${nutritionHtml}
                     
-                    ${dish.price ? `<div class="mt-3 text-lg font-bold text-orange-600">${parseFloat(dish.price).toFixed(2)} ₽</div>` : ''}
+                    <div class="mt-3 flex items-center justify-between">
+                        ${dish.price ? `<div class="text-lg font-bold text-orange-600">${parseFloat(dish.price).toFixed(2)} ₾</div>` : '<div></div>'}
+                        <button 
+                            type="button" 
+                            class="add-to-cart-btn bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
+                            data-dish-id="${dish.id}"
+                            data-dish-name="${dish.name}"
+                            data-dish-price="${dish.price || 0}"
+                            data-dish-image="${dish.image || ''}"
+                        >
+                            Заказать
+                        </button>
+                    </div>
                 `;
 
                 return card;

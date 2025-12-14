@@ -143,7 +143,7 @@
                 <!-- Цена -->
                 <div x-error-field>
                     <label for="price" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                        Цена (₽) <span class="text-red-500">*</span>
+                        Цена (₾) <span class="text-red-500">*</span>
                     </label>
                     <input
                         type="number"
