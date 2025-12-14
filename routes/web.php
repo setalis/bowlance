@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\IconPreviewController;
 use App\Models\DishCategory;
@@ -18,7 +19,7 @@ Route::get('/api/categories/{category}/dishes', function (DishCategory $category
         ->orderBy('sort_order')
         ->orderBy('name')
         ->get();
-    
+
     return response()->json([
         'category' => [
             'id' => $category->id,
@@ -42,6 +43,8 @@ Route::get('/api/categories/{category}/dishes', function (DishCategory $category
         }),
     ]);
 })->name('api.categories.dishes');
+
+Route::post('/api/orders', [OrderController::class, 'store'])->name('api.orders.store');
 
 Route::get('/dashboard', function () {
     return view('dashboard', ['title' => 'Dashboard']);

@@ -151,7 +151,11 @@
                 </div>
             </div>
             <div class="flex flex-col gap-3">
-                <button type="button" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg transition-colors">
+                <button 
+                    type="button" 
+                    id="checkout-button"
+                    class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg transition-colors"
+                >
                     Оформить заказ
                 </button>
                 <button 
@@ -164,6 +168,88 @@
             </div>
             </div>
         </div>
+        </div>
+    </div>
+
+    <!-- Modal оформления заказа -->
+    <div id="checkout-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="checkout-modal"></div>
+        
+        <div class="relative p-4 w-full max-w-2xl max-h-full z-50">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <!-- Modal header -->
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                        Оформление заказа
+                    </h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="checkout-modal">
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+                <!-- Modal body -->
+                <form id="checkout-form" class="p-4 md:p-5 space-y-4">
+                    <div>
+                        <label for="customer_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Имя <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="customer_name" 
+                            name="customer_name" 
+                            required
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
+                            placeholder="Введите ваше имя"
+                        >
+                    </div>
+                    <div>
+                        <label for="customer_phone" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Телефон <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="customer_phone" 
+                            name="customer_phone" 
+                            required
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
+                            placeholder="+7 (999) 123-45-67"
+                        >
+                    </div>
+                    <div>
+                        <label for="customer_address" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Адрес доставки
+                        </label>
+                        <textarea 
+                            id="customer_address" 
+                            name="customer_address" 
+                            rows="3"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
+                            placeholder="Введите адрес доставки (необязательно)"
+                        ></textarea>
+                    </div>
+                    <div id="checkout-error" class="hidden text-red-600 dark:text-red-400 text-sm"></div>
+                    <!-- Modal footer -->
+                    <div class="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <button 
+                            type="button" 
+                            data-modal-hide="checkout-modal"
+                            class="flex-1 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                        >
+                            Отмена
+                        </button>
+                        <button 
+                            type="submit" 
+                            id="checkout-submit"
+                            class="flex-1 text-white bg-orange-500 hover:bg-orange-600 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-orange-500 dark:hover:bg-orange-600 dark:focus:ring-orange-800"
+                        >
+                            Подтвердить заказ
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -671,6 +757,117 @@
                     window.closeCartDrawer();
                 });
             });
+
+            // Обработчик кнопки "Оформить заказ"
+            const checkoutButton = document.getElementById('checkout-button');
+            if (checkoutButton) {
+                checkoutButton.addEventListener('click', function() {
+                    if (cart.length === 0) {
+                        alert('Корзина пуста');
+                        return;
+                    }
+                    // Открываем модальное окно оформления заказа
+                    const modal = document.getElementById('checkout-modal');
+                    if (modal) {
+                        modal.classList.remove('hidden');
+                    }
+                });
+            }
+
+            // Обработчик формы оформления заказа
+            const checkoutForm = document.getElementById('checkout-form');
+            if (checkoutForm) {
+                checkoutForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const submitButton = document.getElementById('checkout-submit');
+                    const errorDiv = document.getElementById('checkout-error');
+                    const customerName = document.getElementById('customer_name').value;
+                    const customerPhone = document.getElementById('customer_phone').value;
+                    const customerAddress = document.getElementById('customer_address').value;
+
+                    if (cart.length === 0) {
+                        errorDiv.textContent = 'Корзина пуста';
+                        errorDiv.classList.remove('hidden');
+                        return;
+                    }
+
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Отправка...';
+                    errorDiv.classList.add('hidden');
+
+                    try {
+                        const orderData = {
+                            customer_name: customerName,
+                            customer_phone: customerPhone,
+                            customer_address: customerAddress || null,
+                            items: cart.map(item => ({
+                                dish_id: item.id,
+                                dish_name: item.name,
+                                price: item.price,
+                                quantity: item.quantity,
+                            })),
+                        };
+
+                        const response = await fetch('{{ route("api.orders.store") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify(orderData),
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            // Очищаем корзину
+                            cart = [];
+                            saveCart();
+                            updateCartDisplay();
+                            
+                            // Закрываем модальное окно и drawer
+                            const modal = document.getElementById('checkout-modal');
+                            if (modal) {
+                                modal.classList.add('hidden');
+                            }
+                            window.closeCartDrawer();
+                            
+                            // Показываем сообщение об успехе
+                            alert('Заказ успешно оформлен!');
+                            
+                            // Очищаем форму
+                            checkoutForm.reset();
+                        } else {
+                            if (data.errors) {
+                                const errorMessages = Object.values(data.errors).flat().join(', ');
+                                errorDiv.textContent = errorMessages;
+                            } else {
+                                errorDiv.textContent = data.message || 'Ошибка при оформлении заказа';
+                            }
+                            errorDiv.classList.remove('hidden');
+                        }
+                    } catch (error) {
+                        errorDiv.textContent = 'Произошла ошибка при отправке заказа';
+                        errorDiv.classList.remove('hidden');
+                        console.error('Ошибка:', error);
+                    } finally {
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Подтвердить заказ';
+                    }
+                });
+            }
+
+            // Закрытие модального окна через backdrop
+            const checkoutModal = document.getElementById('checkout-modal');
+            if (checkoutModal) {
+                checkoutModal.addEventListener('click', function(e) {
+                    if (e.target === checkoutModal) {
+                        checkoutModal.classList.add('hidden');
+                    }
+                });
+            }
 
             categoryButtons.forEach(button => {
                 button.addEventListener('click', function() {
