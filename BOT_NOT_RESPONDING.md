@@ -239,6 +239,9 @@ CSRF защита не нужна для Telegram webhook, потому что:
 ```bash
 php artisan tinker
 # В tinker:
+\Illuminate\Support\Str::random(32)
+# Или:
+use Illuminate\Support\Str;
 Str::random(32)
 ```
 
