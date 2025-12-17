@@ -206,6 +206,52 @@ watch -n 5 'curl -s "https://api.telegram.org/botВАШ_ТОКЕН/getWebhookInf
 - Убедитесь, что URL начинается с `https://`
 - Проверьте SSL сертификат
 
+## Безопасность Webhook
+
+### Почему CSRF не нужен для Telegram webhook?
+
+CSRF защита не нужна для Telegram webhook, потому что:
+1. **Telegram не может предоставить CSRF токен** - это внешний сервис
+2. **Используются другие методы защиты** (см. ниже)
+
+### Методы защиты webhook
+
+1. **Секретный токен (Secret Token)** - РЕКОМЕНДУЕТСЯ
+   - Telegram отправляет заголовок `X-Telegram-Bot-Api-Secret-Token`
+   - Настройте в `.env`: `TELEGRAM_WEBHOOK_SECRET_TOKEN=ваш_секретный_токен`
+   - При настройке webhook укажите: `?secret_token=ваш_секретный_токен`
+
+2. **Проверка IP адресов Telegram**
+   - Код автоматически проверяет IP адреса Telegram
+   - Логирует подозрительные запросы
+
+3. **HTTPS обязателен**
+   - Telegram требует HTTPS для webhook
+   - Все данные передаются в зашифрованном виде
+
+4. **Валидация данных**
+   - Проверка структуры запроса
+   - Логирование всех запросов
+
+### Настройка Secret Token
+
+1. Сгенерируйте случайный токен:
+```bash
+php artisan tinker
+# В tinker:
+Str::random(32)
+```
+
+2. Добавьте в `.env`:
+```env
+TELEGRAM_WEBHOOK_SECRET_TOKEN=ваш_сгенерированный_токен
+```
+
+3. Настройте webhook с токеном:
+```bash
+curl -X POST "https://api.telegram.org/botВАШ_ТОКЕН/setWebhook?url=https://bowlance.dr-chenkova.com/api/telegram/webhook&secret_token=ваш_сгенерированный_токен"
+```
+
 ## Чек-лист
 
 - [ ] Вебхук настроен через `setWebhook`
@@ -214,6 +260,7 @@ watch -n 5 'curl -s "https://api.telegram.org/botВАШ_ТОКЕН/getWebhookInf
 - [ ] SSL сертификат валиден
 - [ ] Переменные окружения установлены
 - [ ] Токен бота правильный
+- [ ] Secret Token настроен (рекомендуется)
 - [ ] Маршрут `/api/telegram/webhook` зарегистрирован
 - [ ] Логи Laravel не показывают ошибок
 - [ ] Тестовый запрос возвращает `{"ok":true}`

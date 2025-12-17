@@ -16,10 +16,43 @@ class TelegramWebhookController extends Controller
     public function handle(Request $request): JsonResponse
     {
         try {
+            // Проверка секретного токена webhook (если настроен)
+            $secretToken = config('verification.telegram.webhook_secret_token');
+            if ($secretToken) {
+                $receivedToken = $request->header('X-Telegram-Bot-Api-Secret-Token');
+                if ($receivedToken !== $secretToken) {
+                    \Log::warning('Telegram webhook: Invalid secret token', [
+                        'ip' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+
+                    return response()->json(['ok' => false, 'error' => 'Unauthorized'], 401);
+                }
+            }
+
+            // Проверка IP адресов Telegram (опционально, но рекомендуется)
+            $telegramIps = [
+                '149.154.160.0/20',
+                '91.108.4.0/22',
+            ];
+            $clientIp = $request->ip();
+            $isFromTelegram = $this->isIpInRange($clientIp, $telegramIps);
+
+            if (! $isFromTelegram) {
+                \Log::warning('Telegram webhook: Request from unknown IP', [
+                    'ip' => $clientIp,
+                    'user_agent' => $request->userAgent(),
+                ]);
+                // Не блокируем, так как IP могут меняться, но логируем
+            }
+
             $update = $request->all();
             $botToken = config('verification.telegram.bot_token');
 
-            \Log::info('Telegram webhook received', ['update' => $update]);
+            \Log::info('Telegram webhook received', [
+                'ip' => $clientIp,
+                'is_from_telegram' => $isFromTelegram,
+            ]);
 
             if (empty($botToken)) {
                 \Log::error('Telegram bot token is not configured');
@@ -95,5 +128,36 @@ class TelegramWebhookController extends Controller
 
             return response()->json(['ok' => false, 'error' => 'Internal server error'], 500);
         }
+    }
+
+    /**
+     * Проверка, находится ли IP адрес в диапазоне Telegram
+     */
+    private function isIpInRange(string $ip, array $ranges): bool
+    {
+        foreach ($ranges as $range) {
+            if (str_contains($range, '/')) {
+                [$subnet, $mask] = explode('/', $range);
+                if ($this->ipInCidr($ip, $subnet, (int) $mask)) {
+                    return true;
+                }
+            } elseif ($ip === $range) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Проверка, находится ли IP в CIDR диапазоне
+     */
+    private function ipInCidr(string $ip, string $subnet, int $mask): bool
+    {
+        $ipLong = ip2long($ip);
+        $subnetLong = ip2long($subnet);
+        $maskLong = -1 << (32 - $mask);
+
+        return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
     }
 }
