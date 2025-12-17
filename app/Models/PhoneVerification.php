@@ -86,9 +86,13 @@ class PhoneVerification extends Model
         return $query->where('verification_token', $token);
     }
 
-    public function setCodeAttribute(string $code): void
+    public function setCodeAttribute(?string $code): void
     {
-        $this->attributes['code'] = Hash::make($code);
+        if ($code !== null) {
+            $this->attributes['code'] = Hash::make($code);
+        } else {
+            $this->attributes['code'] = null;
+        }
     }
 
     public function verifyCode(string $code): bool

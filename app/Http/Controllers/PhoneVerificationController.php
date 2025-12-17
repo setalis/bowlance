@@ -34,6 +34,14 @@ class PhoneVerificationController extends Controller
             );
 
             $botUsername = config('verification.telegram.bot_username');
+
+            if (empty($botUsername)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Telegram бот не настроен. Обратитесь к администратору.',
+                ], 500);
+            }
+
             $botUrl = "https://t.me/{$botUsername}?start={$verification->verification_token}";
 
             return response()->json([
@@ -42,9 +50,16 @@ class PhoneVerificationController extends Controller
                 'verification_token' => $verification->verification_token,
             ]);
         } catch (\Exception $e) {
+            \Log::error('Ошибка при создании верификации', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Ошибка при создании верификации. Попробуйте позже.',
+                'message' => config('app.debug')
+                    ? 'Ошибка: '.$e->getMessage()
+                    : 'Ошибка при создании верификации. Попробуйте позже.',
             ], 500);
         }
     }
