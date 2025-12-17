@@ -7,7 +7,7 @@ return [
         'webhook_url' => env('TELEGRAM_WEBHOOK_URL'),
     ],
 
-    'code_expires_minutes' => env('VERIFICATION_CODE_EXPIRES_MINUTES', 10),
+    'code_expires_minutes' => (int) env('VERIFICATION_CODE_EXPIRES_MINUTES', 10),
 
-    'max_attempts' => env('VERIFICATION_MAX_ATTEMPTS', 3),
+    'max_attempts' => (int) env('VERIFICATION_MAX_ATTEMPTS', 3),
 ];
