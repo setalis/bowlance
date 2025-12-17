@@ -1234,7 +1234,16 @@
                             }),
                         });
 
-                        const data = await response.json();
+                        let data;
+                        try {
+                            data = await response.json();
+                        } catch (e) {
+                            errorDiv.textContent = 'Ошибка сервера. Проверьте настройки Telegram бота в .env файле.';
+                            errorDiv.classList.remove('hidden');
+                            telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                            console.error('Ошибка парсинга JSON:', e);
+                            return;
+                        }
 
                         if (response.ok && data.success) {
                             // Сохраняем токен для проверки статуса
@@ -1277,15 +1286,17 @@
                                 telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
                             }, 60000);
                         } else {
-                            errorDiv.textContent = data.message || 'Ошибка при создании верификации';
+                            const errorMessage = data.message || 'Ошибка при создании верификации';
+                            errorDiv.textContent = errorMessage;
                             errorDiv.classList.remove('hidden');
                             telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                            console.error('Ошибка API:', data);
                         }
                     } catch (error) {
-                        errorDiv.textContent = 'Произошла ошибка. Попробуйте еще раз.';
+                        errorDiv.textContent = 'Произошла ошибка при подключении к серверу. Проверьте настройки Telegram бота в .env файле (TELEGRAM_BOT_TOKEN и TELEGRAM_BOT_USERNAME).';
                         errorDiv.classList.remove('hidden');
                         telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
-                        console.error('Ошибка:', error);
+                        console.error('Ошибка сети:', error);
                     }
                 });
             }
