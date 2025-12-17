@@ -62,5 +62,6 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/icons', [IconPreviewController::class, 'index'])->name('icons.preview');
 });
 
+
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';
