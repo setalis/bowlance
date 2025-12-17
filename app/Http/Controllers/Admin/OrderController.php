@@ -21,6 +21,7 @@ class OrderController extends Controller
         $pendingOrders = Order::with('items')
             ->where('status', '!=', 'completed')
             ->orderByRaw("CASE 
+                WHEN status = 'pending_verification' THEN 0 
                 WHEN status = 'new' THEN 1 
                 WHEN status = 'preparing' THEN 2 
                 WHEN status = 'delivering' THEN 3 
@@ -56,7 +57,7 @@ class OrderController extends Controller
             'customer_name' => $data['customer_name'],
             'customer_phone' => $data['customer_phone'],
             'customer_address' => $data['customer_address'] ?? null,
-            'status' => 'new',
+            'status' => 'pending_verification',
             'total' => $total,
         ]);
 
@@ -72,8 +73,11 @@ class OrderController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Заказ успешно создан.',
+                'message' => 'Заказ создан. Требуется подтверждение телефона через Telegram.',
                 'order' => $order->load('items'),
+                'requires_verification' => true,
+                'order_id' => $order->id,
+                'phone' => $order->customer_phone,
             ]);
         }
 

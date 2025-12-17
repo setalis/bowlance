@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\IconPreviewController;
+use App\Http\Controllers\PhoneVerificationController;
 use App\Models\DishCategory;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -45,6 +46,11 @@ Route::get('/api/categories/{category}/dishes', function (DishCategory $category
 })->name('api.categories.dishes');
 
 Route::post('/api/orders', [OrderController::class, 'store'])->name('api.orders.store');
+
+Route::post('/api/phone/verification/start', [PhoneVerificationController::class, 'start'])->name('api.phone.verification.start');
+Route::post('/api/phone/verification/send', [PhoneVerificationController::class, 'sendCode'])->name('api.phone.verification.send');
+Route::post('/api/phone/verification/verify', [PhoneVerificationController::class, 'verifyCode'])->name('api.phone.verification.verify');
+Route::post('/api/telegram/webhook', [App\Http\Controllers\TelegramWebhookController::class, 'handle'])->name('api.telegram.webhook');
 
 Route::get('/dashboard', function () {
     return view('dashboard', ['title' => 'Dashboard']);

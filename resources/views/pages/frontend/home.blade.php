@@ -162,6 +162,13 @@
                 </button>
                 <button 
                     type="button" 
+                    id="clear-cart-button"
+                    class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-3 rounded-lg transition-colors"
+                >
+                    Очистить корзину
+                </button>
+                <button 
+                    type="button" 
                     data-drawer-hide="cart-drawer"
                     class="w-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold px-4 py-3 rounded-lg transition-colors"
                 >
@@ -251,6 +258,101 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal верификации телефона -->
+    <div id="verification-modal" tabindex="-1" aria-hidden="true" aria-labelledby="verification-modal-title" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <!-- Backdrop -->
+        <div id="verification-modal-backdrop" class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
+        
+        <div class="relative p-4 w-full max-w-md max-h-full z-50">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <!-- Modal header -->
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                    <h3 id="verification-modal-title" class="text-xl font-semibold text-gray-900 dark:text-white">
+                        Подтверждение телефона
+                    </h3>
+                    <button type="button" id="verification-modal-close" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+                <!-- Modal body -->
+                <div class="p-4 md:p-5 space-y-4">
+                    <div id="verification-step-1">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Для подтверждения заказа необходимо подтвердить номер телефона через Telegram. 
+                            Нажмите кнопку ниже, чтобы открыть Telegram бота и получить код подтверждения.
+                        </p>
+                        <div id="verification-error-1" class="hidden text-red-600 dark:text-red-400 text-sm mb-4"></div>
+                        <div class="flex flex-col gap-3">
+                            <a 
+                                id="telegram-bot-link"
+                                href="#"
+                                target="_blank"
+                                class="w-full inline-flex items-center justify-center gap-2 text-white bg-[#0088cc] hover:bg-[#0077b5] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors"
+                            >
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.2 1.656-1.053 5.684-1.482 7.533-.19.856-.562 1.141-.925 1.17-.78.055-1.371-.515-2.127-1.009-.59-.39-.925-.606-1.5-1.009-.662-.45-.232-.697.144-1.101.098-.105 1.78-1.633 1.814-1.772.008-.033.016-.156-.06-.234-.075-.078-.184-.051-.264-.03-.112.027-1.89 1.2-5.336 3.523-.505.336-.96.5-1.371.492-.46-.009-1.344-.26-2.001-.475-.807-.268-1.45-.41-1.394-.867.027-.225.405-.456 1.113-.69 4.323-1.88 7.203-3.12 8.64-3.72 4.14-1.8 5.001-2.115 5.562-2.139.12-.005.39-.027.565.16.138.148.192.348.211.488.019.14.033.457-.019.705z"/>
+                                </svg>
+                                Открыть Telegram бота
+                            </a>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                После открытия бота нажмите кнопку "Начать" или отправьте команду /start
+                            </p>
+                        </div>
+                        <div id="waiting-for-code" class="hidden mt-4">
+                            <div class="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Ожидание кода...
+                            </div>
+                        </div>
+                    </div>
+                    <div id="verification-step-2" class="hidden">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Код подтверждения отправлен в Telegram. Введите код для подтверждения заказа.
+                        </p>
+                        <div class="mb-4">
+                            <label for="verification_code" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Код подтверждения <span class="text-red-500">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="verification_code" 
+                                name="verification_code" 
+                                required
+                                maxlength="6"
+                                pattern="[0-9]{6}"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500 text-center text-2xl tracking-widest"
+                                placeholder="000000"
+                            >
+                        </div>
+                        <div id="verification-error-2" class="hidden text-red-600 dark:text-red-400 text-sm mb-4"></div>
+                        <div class="flex gap-3">
+                            <button 
+                                type="button" 
+                                id="back-button"
+                                class="flex-1 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                            >
+                                Назад
+                            </button>
+                            <button 
+                                type="button" 
+                                id="verify-code-button"
+                                class="flex-1 text-white bg-orange-500 hover:bg-orange-600 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-orange-500 dark:hover:bg-orange-600 dark:focus:ring-orange-800"
+                            >
+                                Подтвердить
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -522,6 +624,23 @@
             saveCart();
         }
 
+        function clearCart() {
+            if (cart.length === 0) {
+                return;
+            }
+            
+            if (confirm('Вы уверены, что хотите очистить корзину?')) {
+                cart = [];
+                saveCart();
+                
+                // Закрываем drawer корзины
+                window.closeCartDrawer();
+                
+                // Перенаправляем на главную страницу
+                window.location.href = '/';
+            }
+        }
+
         function getCartTotal() {
             return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
         }
@@ -629,6 +748,7 @@
             const cartTotal = document.getElementById('cart-total');
             const cartBadge = document.getElementById('cart-badge');
             const cartBadgeMobile = document.getElementById('cart-badge-mobile');
+            const clearCartButton = document.getElementById('clear-cart-button');
             
             // Обновляем бейдж корзины
             const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -653,10 +773,16 @@
                 cartItems.classList.add('hidden');
                 cartEmpty.classList.remove('hidden');
                 cartFooter.classList.add('hidden');
+                if (clearCartButton) {
+                    clearCartButton.classList.add('hidden');
+                }
             } else {
                 cartItems.classList.remove('hidden');
                 cartEmpty.classList.add('hidden');
                 cartFooter.classList.remove('hidden');
+                if (clearCartButton) {
+                    clearCartButton.classList.remove('hidden');
+                }
 
                 cartItems.innerHTML = cart.map(item => `
                     <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -829,6 +955,15 @@
                 });
             }
 
+            // Обработчик кнопки "Очистить корзину"
+            const clearCartButton = document.getElementById('clear-cart-button');
+            if (clearCartButton) {
+                clearCartButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    clearCart();
+                });
+            }
+
             // Инициализация модального окна через Flowbite API
             if (window.Flowbite && window.Flowbite.Modal) {
                 const modalElement = document.getElementById('checkout-modal');
@@ -936,20 +1071,33 @@
                         const data = await response.json();
 
                         if (response.ok) {
-                            // Очищаем корзину
-                            cart = [];
-                            saveCart();
-                            updateCartDisplay();
-                            
-                            // Закрываем модальное окно и drawer
-                            window.closeCheckoutModal();
-                            window.closeCartDrawer();
-                            
-                            // Показываем сообщение об успехе
-                            alert('Заказ успешно оформлен!');
-                            
-                            // Очищаем форму
-                            checkoutForm.reset();
+                            // Проверяем, требуется ли верификация
+                            if (data.requires_verification) {
+                                // Сохраняем данные заказа для верификации
+                                window.pendingOrderId = data.order_id;
+                                window.pendingOrderPhone = data.phone;
+                                
+                                // Закрываем модальное окно оформления заказа
+                                window.closeCheckoutModal();
+                                
+                                // Показываем модальное окно верификации
+                                window.openVerificationModal();
+                            } else {
+                                // Очищаем корзину
+                                cart = [];
+                                saveCart();
+                                updateCartDisplay();
+                                
+                                // Закрываем модальное окно и drawer
+                                window.closeCheckoutModal();
+                                window.closeCartDrawer();
+                                
+                                // Показываем сообщение об успехе
+                                alert('Заказ успешно оформлен!');
+                                
+                                // Очищаем форму
+                                checkoutForm.reset();
+                            }
                         } else {
                             if (data.errors) {
                                 const errorMessages = Object.values(data.errors).flat().join(', ');
@@ -998,6 +1146,270 @@
                     }
                 }
             };
+
+            // Функции для работы с модальным окном верификации
+            window.openVerificationModal = function() {
+                const modal = document.getElementById('verification-modal');
+                if (modal) {
+                    // Сбрасываем форму верификации
+                    document.getElementById('verification-step-1').classList.remove('hidden');
+                    document.getElementById('verification-step-2').classList.add('hidden');
+                    document.getElementById('verification_code').value = '';
+                    document.getElementById('verification-error-1').classList.add('hidden');
+                    document.getElementById('verification-error-2').classList.add('hidden');
+                    document.getElementById('waiting-for-code').classList.add('hidden');
+                    const telegramBotLink = document.getElementById('telegram-bot-link');
+                    if (telegramBotLink) {
+                        telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                    }
+                    
+                    // Открываем модальное окно
+                    modal.classList.remove('hidden');
+                    modal.setAttribute('aria-hidden', 'false');
+                    
+                    // Устанавливаем фокус на первый интерактивный элемент
+                    setTimeout(() => {
+                        const firstButton = modal.querySelector('button, a');
+                        if (firstButton) {
+                            firstButton.focus();
+                        }
+                    }, 100);
+                }
+            };
+
+            window.closeVerificationModal = function() {
+                const modal = document.getElementById('verification-modal');
+                if (modal) {
+                    // Закрываем модальное окно вручную
+                    modal.classList.add('hidden');
+                    modal.setAttribute('aria-hidden', 'true');
+                    
+                    // Убираем фокус с элементов внутри модального окна
+                    const focusedElement = modal.querySelector(':focus');
+                    if (focusedElement) {
+                        focusedElement.blur();
+                    }
+                    
+                    // Сбрасываем состояние формы
+                    document.getElementById('verification-step-1').classList.remove('hidden');
+                    document.getElementById('verification-step-2').classList.add('hidden');
+                    document.getElementById('verification_code').value = '';
+                    document.getElementById('verification-error-1').classList.add('hidden');
+                    document.getElementById('verification-error-2').classList.add('hidden');
+                    document.getElementById('waiting-for-code').classList.add('hidden');
+                    const telegramBotLink = document.getElementById('telegram-bot-link');
+                    if (telegramBotLink) {
+                        telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                    }
+                }
+            };
+
+            // Обработчик начала верификации через Telegram
+            const telegramBotLink = document.getElementById('telegram-bot-link');
+            if (telegramBotLink) {
+                telegramBotLink.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    const errorDiv = document.getElementById('verification-error-1');
+                    const waitingDiv = document.getElementById('waiting-for-code');
+                    
+                    if (!window.pendingOrderId) {
+                        errorDiv.textContent = 'Ошибка: данные заказа не найдены';
+                        errorDiv.classList.remove('hidden');
+                        return;
+                    }
+
+                    errorDiv.classList.add('hidden');
+                    telegramBotLink.classList.add('opacity-50', 'pointer-events-none');
+
+                    try {
+                        const response = await fetch('{{ route("api.phone.verification.start") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                order_id: window.pendingOrderId,
+                            }),
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            // Сохраняем токен для проверки статуса
+                            window.verificationToken = data.verification_token;
+                            
+                            // Открываем Telegram бота
+                            window.open(data.bot_url, '_blank');
+                            
+                            // Показываем индикатор ожидания
+                            waitingDiv.classList.remove('hidden');
+                            
+                            // Начинаем проверку статуса верификации (polling)
+                            const checkInterval = setInterval(async function() {
+                                try {
+                                    // Проверяем, был ли отправлен код (проверяем наличие telegram_chat_id через проверку заказа)
+                                    const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${window.pendingOrderId}`, {
+                                        headers: {
+                                            'Accept': 'application/json',
+                                        },
+                                    });
+                                    
+                                    // Если код отправлен, переходим ко второму шагу
+                                    // Для простоты, просто ждем 3 секунды после открытия бота
+                                    setTimeout(function() {
+                                        clearInterval(checkInterval);
+                                        waitingDiv.classList.add('hidden');
+                                        document.getElementById('verification-step-1').classList.add('hidden');
+                                        document.getElementById('verification-step-2').classList.remove('hidden');
+                                        document.getElementById('verification_code').focus();
+                                    }, 3000);
+                                } catch (error) {
+                                    console.error('Ошибка проверки статуса:', error);
+                                }
+                            }, 2000);
+                            
+                            // Останавливаем проверку через 60 секунд
+                            setTimeout(function() {
+                                clearInterval(checkInterval);
+                                waitingDiv.classList.add('hidden');
+                                telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                            }, 60000);
+                        } else {
+                            errorDiv.textContent = data.message || 'Ошибка при создании верификации';
+                            errorDiv.classList.remove('hidden');
+                            telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                        }
+                    } catch (error) {
+                        errorDiv.textContent = 'Произошла ошибка. Попробуйте еще раз.';
+                        errorDiv.classList.remove('hidden');
+                        telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                        console.error('Ошибка:', error);
+                    }
+                });
+            }
+
+            // Обработчик кнопки "Назад"
+            const backButton = document.getElementById('back-button');
+            if (backButton) {
+                backButton.addEventListener('click', function() {
+                    document.getElementById('verification-step-2').classList.add('hidden');
+                    document.getElementById('verification-step-1').classList.remove('hidden');
+                    document.getElementById('verification_code').value = '';
+                    document.getElementById('verification-error-2').classList.add('hidden');
+                });
+            }
+
+            // Обработчик проверки кода верификации
+            const verifyCodeButton = document.getElementById('verify-code-button');
+            if (verifyCodeButton) {
+                verifyCodeButton.addEventListener('click', async function() {
+                    const code = document.getElementById('verification_code').value;
+                    const errorDiv = document.getElementById('verification-error-2');
+                    
+                    if (!code || code.length !== 6) {
+                        errorDiv.textContent = 'Введите 6-значный код';
+                        errorDiv.classList.remove('hidden');
+                        return;
+                    }
+
+                    if (!window.pendingOrderId) {
+                        errorDiv.textContent = 'Ошибка: данные заказа не найдены';
+                        errorDiv.classList.remove('hidden');
+                        return;
+                    }
+
+                    verifyCodeButton.disabled = true;
+                    verifyCodeButton.textContent = 'Проверка...';
+                    errorDiv.classList.add('hidden');
+
+                    try {
+                        const response = await fetch('{{ route("api.phone.verification.verify") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                order_id: window.pendingOrderId,
+                                code: code,
+                            }),
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            // Очищаем корзину
+                            cart = [];
+                            saveCart();
+                            updateCartDisplay();
+                            
+                            // Закрываем модальное окно верификации и drawer
+                            window.closeVerificationModal();
+                            window.closeCartDrawer();
+                            
+                            // Показываем сообщение об успехе
+                            alert('Заказ успешно подтвержден и принят!');
+                            
+                            // Очищаем форму
+                            checkoutForm.reset();
+                            
+                            // Очищаем данные заказа
+                            window.pendingOrderId = null;
+                            window.pendingOrderPhone = null;
+                        } else {
+                            errorDiv.textContent = data.message || 'Неверный код. Попробуйте еще раз.';
+                            errorDiv.classList.remove('hidden');
+                        }
+                    } catch (error) {
+                        errorDiv.textContent = 'Произошла ошибка при проверке кода';
+                        errorDiv.classList.remove('hidden');
+                        console.error('Ошибка:', error);
+                    } finally {
+                        verifyCodeButton.disabled = false;
+                        verifyCodeButton.textContent = 'Подтвердить';
+                    }
+                });
+            }
+
+            // Обработчики закрытия модального окна верификации
+            function setupVerificationModalHandlers() {
+                // Обработчик клика на кнопку закрытия
+                const closeButton = document.getElementById('verification-modal-close');
+                if (closeButton) {
+                    closeButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.closeVerificationModal();
+                    });
+                }
+
+                // Обработчик клика на backdrop
+                const backdrop = document.getElementById('verification-modal-backdrop');
+                if (backdrop) {
+                    backdrop.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.closeVerificationModal();
+                    });
+                }
+
+                // Обработчик клавиши Escape (добавляем один раз)
+                if (!window.verificationModalEscapeHandler) {
+                    window.verificationModalEscapeHandler = function(e) {
+                        const modal = document.getElementById('verification-modal');
+                        if (modal && e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                            window.closeVerificationModal();
+                        }
+                    };
+                    document.addEventListener('keydown', window.verificationModalEscapeHandler);
+                }
+            }
+
+            // Настраиваем обработчики после загрузки DOM
+            setupVerificationModalHandlers();
 
             categoryButtons.forEach(button => {
                 button.addEventListener('click', function() {
