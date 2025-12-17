@@ -143,32 +143,48 @@ class PhoneVerificationController extends Controller
 
     public function checkStatus(): JsonResponse
     {
-        $orderId = request()->query('order_id');
+        try {
+            $orderId = request()->query('order_id');
 
-        if (! $orderId) {
+            if (! $orderId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order ID is required.',
+                ], 400);
+            }
+
+            $order = Order::find($orderId);
+
+            if (! $order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found.',
+                ], 404);
+            }
+
+            $verification = $order->phoneVerification;
+
+            return response()->json([
+                'success' => true,
+                'order_status' => $order->status,
+                'is_verified' => $verification ? ($verification->verified_at !== null) : false,
+                'has_code' => $verification ? ($verification->code !== null) : false,
+                'has_telegram_chat_id' => $verification ? ($verification->telegram_chat_id !== null) : false,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при проверке статуса верификации', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Order ID is required.',
-            ], 400);
+                'message' => config('app.debug')
+                    ? 'Ошибка: '.$e->getMessage().' в файле '.$e->getFile().' на строке '.$e->getLine()
+                    : 'Ошибка при проверке статуса. Попробуйте позже.',
+            ], 500);
         }
-
-        $order = Order::find($orderId);
-
-        if (! $order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order not found.',
-            ], 404);
-        }
-
-        $verification = $order->phoneVerification;
-
-        return response()->json([
-            'success' => true,
-            'order_status' => $order->status,
-            'is_verified' => $verification && $verification->verified_at !== null,
-            'has_code' => $verification && $verification->code !== null,
-            'has_telegram_chat_id' => $verification && $verification->telegram_chat_id !== null,
-        ]);
     }
 }
