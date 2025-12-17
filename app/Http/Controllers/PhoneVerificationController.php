@@ -36,6 +36,8 @@ class PhoneVerificationController extends Controller
             $botUsername = config('verification.telegram.bot_username');
 
             if (empty($botUsername)) {
+                \Log::error('Telegram bot username not configured');
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Telegram бот не настроен. Обратитесь к администратору.',
@@ -49,16 +51,32 @@ class PhoneVerificationController extends Controller
                 'bot_url' => $botUrl,
                 'verification_token' => $verification->verification_token,
             ]);
-        } catch (\Exception $e) {
-            \Log::error('Ошибка при создании верификации', [
+        } catch (\TypeError $e) {
+            \Log::error('Type error при создании верификации', [
                 'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => config('app.debug')
-                    ? 'Ошибка: '.$e->getMessage()
+                    ? 'Ошибка типа: '.$e->getMessage().' в файле '.$e->getFile().' на строке '.$e->getLine()
+                    : 'Ошибка при создании верификации. Проверьте настройки.',
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при создании верификации', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => config('app.debug')
+                    ? 'Ошибка: '.$e->getMessage().' в файле '.$e->getFile().' на строке '.$e->getLine()
                     : 'Ошибка при создании верификации. Попробуйте позже.',
             ], 500);
         }

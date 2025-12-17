@@ -41,9 +41,11 @@ class PhoneVerification extends Model
 
     public function scopeActive(Builder $query): Builder
     {
+        $maxAttempts = (int) config('verification.max_attempts', 3);
+
         return $query->whereNull('verified_at')
             ->where('expires_at', '>', now())
-            ->where('attempts', '<', config('verification.max_attempts', 3));
+            ->where('attempts', '<', $maxAttempts);
     }
 
     public function isExpired(): bool
@@ -58,7 +60,9 @@ class PhoneVerification extends Model
 
     public function hasExceededAttempts(): bool
     {
-        return $this->attempts >= config('verification.max_attempts', 3);
+        $maxAttempts = (int) config('verification.max_attempts', 3);
+
+        return $this->attempts >= $maxAttempts;
     }
 
     public function incrementAttempts(): void
