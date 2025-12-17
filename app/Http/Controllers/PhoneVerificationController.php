@@ -140,4 +140,35 @@ class PhoneVerificationController extends Controller
             'order' => $order->fresh()->load('items'),
         ]);
     }
+
+    public function checkStatus(): JsonResponse
+    {
+        $orderId = request()->query('order_id');
+
+        if (! $orderId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order ID is required.',
+            ], 400);
+        }
+
+        $order = Order::find($orderId);
+
+        if (! $order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found.',
+            ], 404);
+        }
+
+        $verification = $order->phoneVerification;
+
+        return response()->json([
+            'success' => true,
+            'order_status' => $order->status,
+            'is_verified' => $verification && $verification->verified_at !== null,
+            'has_code' => $verification && $verification->code !== null,
+            'has_telegram_chat_id' => $verification && $verification->telegram_chat_id !== null,
+        ]);
+    }
 }

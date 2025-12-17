@@ -15,7 +15,7 @@ class PhoneVerificationService
     public function startVerification(Order $order, string $phone): PhoneVerification
     {
         $token = PhoneVerification::generateToken();
-        $expiresMinutes = max(1, (int) (config('verification.code_expires_minutes') ?: 10));
+        $expiresMinutes = max(1, (int) config('verification.code_expires_minutes', 10));
         $expiresAt = Carbon::now()->addMinutes($expiresMinutes);
 
         $verification = PhoneVerification::create([
@@ -55,7 +55,7 @@ class PhoneVerificationService
     public function initiateVerification(Order $order, string $phone, string $chatId): PhoneVerification
     {
         $code = PhoneVerification::generateCode();
-        $expiresMinutes = max(1, (int) (config('verification.code_expires_minutes') ?: 10));
+        $expiresMinutes = max(1, (int) config('verification.code_expires_minutes', 10));
         $expiresAt = Carbon::now()->addMinutes($expiresMinutes);
 
         $verification = PhoneVerification::create([
