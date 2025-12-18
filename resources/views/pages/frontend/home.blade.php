@@ -330,7 +330,7 @@
                                 required
                                 maxlength="6"
                                 pattern="[0-9]{6}"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500 text-center text-2xl tracking-widest"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500 text-center tracking-widest"
                                 placeholder="000000"
                             >
                         </div>
@@ -1151,7 +1151,7 @@
             window.openVerificationModal = function() {
                 const modal = document.getElementById('verification-modal');
                 if (modal) {
-                    // Сбрасываем форму верификации
+                    // Сбрасываем форму верификации (этап с кодом больше не используется)
                     document.getElementById('verification-step-1').classList.remove('hidden');
                     document.getElementById('verification-step-2').classList.add('hidden');
                     document.getElementById('verification_code').value = '';
@@ -1203,6 +1203,27 @@
                     }
                 }
             };
+
+            function handleVerificationSuccess() {
+                // Очищаем корзину
+                cart = [];
+                saveCart();
+                updateCartDisplay();
+
+                // Закрываем модальные окна
+                window.closeVerificationModal();
+                window.closeCartDrawer();
+
+                // Сообщение об успехе
+                alert('Телефон подтвержден, заказ принят!');
+
+                // Очищаем данные заказа
+                if (typeof checkoutForm !== 'undefined' && checkoutForm) {
+                    checkoutForm.reset();
+                }
+                window.pendingOrderId = null;
+                window.pendingOrderPhone = null;
+            }
 
             // Обработчик начала верификации через Telegram
             const telegramBotLink = document.getElementById('telegram-bot-link');
@@ -1268,36 +1289,40 @@
                             // Показываем индикатор ожидания
                             waitingDiv.classList.remove('hidden');
                             
-                            // Начинаем проверку статуса верификации (polling)
-                            const checkInterval = setInterval(async function() {
+                            // Начинаем проверку статуса верификации (polling) — без ввода кода
+                            const pollIntervalMs = 2000;
+                            const maxPollMs = 60000;
+                            const startedAt = Date.now();
+                            const poll = async () => {
                                 try {
-                                    // Проверяем, был ли отправлен код (проверяем наличие telegram_chat_id через проверку заказа)
                                     const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${window.pendingOrderId}`, {
                                         headers: {
                                             'Accept': 'application/json',
                                         },
                                     });
-                                    
-                                    // Если код отправлен, переходим ко второму шагу
-                                    // Для простоты, просто ждем 3 секунды после открытия бота
-                                    setTimeout(function() {
-                                        clearInterval(checkInterval);
-                                        waitingDiv.classList.add('hidden');
-                                        document.getElementById('verification-step-1').classList.add('hidden');
-                                        document.getElementById('verification-step-2').classList.remove('hidden');
-                                        document.getElementById('verification_code').focus();
-                                    }, 3000);
+                                    const statusData = await checkResponse.json();
+                                    if (statusData.success && statusData.is_verified) {
+                                        handleVerificationSuccess();
+                                        return;
+                                    }
+                                    // Если заказ ушел из pending_verification — тоже считаем подтвержденным
+                                    if (statusData.success && statusData.order_status && statusData.order_status !== 'pending_verification') {
+                                        handleVerificationSuccess();
+                                        return;
+                                    }
                                 } catch (error) {
                                     console.error('Ошибка проверки статуса:', error);
                                 }
-                            }, 2000);
+
+                                if (Date.now() - startedAt < maxPollMs) {
+                                    setTimeout(poll, pollIntervalMs);
+                                } else {
+                                    waitingDiv.classList.add('hidden');
+                                    telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                                }
+                            };
+                            poll();
                             
-                            // Останавливаем проверку через 60 секунд
-                            setTimeout(function() {
-                                clearInterval(checkInterval);
-                                waitingDiv.classList.add('hidden');
-                                telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
-                            }, 60000);
                         } else {
                             const errorMessage = data.message || 'Ошибка при создании верификации';
                             errorDiv.textContent = errorMessage;
