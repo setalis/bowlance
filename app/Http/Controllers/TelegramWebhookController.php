@@ -97,6 +97,10 @@ class TelegramWebhookController extends Controller
                         ->first();
 
                     if ($verification && $telegramPhone) {
+                        // Сохраняем текущий статус заказа ДО верификации
+                        $orderBeforeVerification = $verification->order;
+                        $orderStatusBefore = $orderBeforeVerification ? $orderBeforeVerification->status : null;
+
                         $result = $this->verificationService->verifyPhoneNumber(
                             $verification->verification_token,
                             (string) $chatId,
@@ -104,9 +108,36 @@ class TelegramWebhookController extends Controller
                         );
 
                         $responseText = $result['message'];
+
+                        // Проверяем, что заказ не был обновлен, если верификация не прошла
+                        if (! $result['success']) {
+                            // Перезагружаем заказ из БД, чтобы убедиться, что статус не изменился
+                            $orderAfterVerification = $verification->order->fresh();
+                            if ($orderAfterVerification && $orderStatusBefore && $orderAfterVerification->status !== $orderStatusBefore) {
+                                // КРИТИЧЕСКАЯ ОШИБКА: статус заказа изменился, хотя верификация не прошла!
+                                \Log::error('CRITICAL: Order status changed despite failed verification!', [
+                                    'order_id' => $orderAfterVerification->id,
+                                    'order_status_before' => $orderStatusBefore,
+                                    'order_status_after' => $orderAfterVerification->status,
+                                    'verification_id' => $verification->id,
+                                    'verification_success' => $result['success'],
+                                ]);
+
+                                // Откатываем изменение статуса
+                                $orderAfterVerification->update(['status' => $orderStatusBefore]);
+                                \Log::warning('Order status rolled back to original status', [
+                                    'order_id' => $orderAfterVerification->id,
+                                    'restored_status' => $orderStatusBefore,
+                                ]);
+                            }
+                        }
+
                         \Log::info('Phone verification result', [
                             'success' => $result['success'],
                             'verification_id' => $verification->id,
+                            'order_id' => $orderBeforeVerification->id ?? null,
+                            'order_status_before' => $orderStatusBefore,
+                            'order_status_after' => $orderBeforeVerification ? $orderBeforeVerification->fresh()->status : null,
                         ]);
                     } else {
                         $responseText = '❌ Ошибка: не найдена активная верификация. Пожалуйста, начните процесс верификации на сайте.';

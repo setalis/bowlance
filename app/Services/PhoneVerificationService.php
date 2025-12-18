@@ -149,10 +149,30 @@ class PhoneVerificationService
         $normalizedPhone = preg_replace('/[^0-9]/', '', $verification->phone);
         $normalizedTelegramPhone = preg_replace('/[^0-9]/', '', $telegramPhone);
 
+        // Логируем номера для отладки
+        \Log::info('Comparing phone numbers', [
+            'order_phone' => $verification->phone,
+            'order_phone_normalized' => $normalizedPhone,
+            'telegram_phone' => $telegramPhone,
+            'telegram_phone_normalized' => $normalizedTelegramPhone,
+            'verification_id' => $verification->id,
+            'order_id' => $verification->order_id,
+        ]);
+
         // Проверяем совпадение (по полному совпадению или по последним 10 цифрам)
         $phoneMatches = $this->comparePhones($normalizedPhone, $normalizedTelegramPhone);
 
         if (! $phoneMatches) {
+            \Log::warning('Phone numbers do not match - verification rejected', [
+                'order_phone' => $verification->phone,
+                'order_phone_normalized' => $normalizedPhone,
+                'telegram_phone' => $telegramPhone,
+                'telegram_phone_normalized' => $normalizedTelegramPhone,
+                'verification_id' => $verification->id,
+                'order_id' => $verification->order_id,
+                'order_status' => $verification->order->status ?? 'unknown',
+            ]);
+
             return [
                 'success' => false,
                 'message' => 'Введенный номер на сайте не совпадает с номером Telegram. Пожалуйста, используйте тот же номер, который вы указали при оформлении заказа.',
@@ -160,11 +180,18 @@ class PhoneVerificationService
         }
 
         // Номера совпадают — подтверждаем без кода
+        // ВАЖНО: Обновляем верификацию только если номера совпали
         try {
             $verification->update([
                 'telegram_phone' => $telegramPhone,
                 'verified_at' => now(),
                 'code' => null,
+            ]);
+
+            \Log::info('Phone verification successful - updating order status', [
+                'verification_id' => $verification->id,
+                'order_id' => $verification->order_id,
+                'order_status_before' => $verification->order->status ?? 'unknown',
             ]);
         } catch (\Illuminate\Database\QueryException $e) {
             // Если ошибка связана с отсутствием колонки, обновляем без telegram_phone
@@ -179,16 +206,33 @@ class PhoneVerificationService
                     'verified_at' => now(),
                     'code' => null,
                 ]);
+
+                \Log::info('Phone verification successful (without telegram_phone column) - updating order status', [
+                    'verification_id' => $verification->id,
+                    'order_id' => $verification->order_id,
+                    'order_status_before' => $verification->order->status ?? 'unknown',
+                ]);
             } else {
                 // Другая ошибка БД - пробрасываем дальше
                 throw $e;
             }
         }
 
-        // Обновляем статус заказа, если он ожидал верификации
+        // Обновляем статус заказа ТОЛЬКО если верификация прошла успешно
+        // Это происходит только если номера совпали (код выше выполнился)
         $order = $verification->order;
         if ($order && $order->status === 'pending_verification') {
             $order->update(['status' => 'new']);
+            \Log::info('Order status updated to "new" after successful phone verification', [
+                'order_id' => $order->id,
+                'verification_id' => $verification->id,
+            ]);
+        } else {
+            \Log::warning('Order status was NOT updated - order status is not pending_verification', [
+                'order_id' => $order->id ?? 'unknown',
+                'order_status' => $order->status ?? 'unknown',
+                'verification_id' => $verification->id,
+            ]);
         }
 
         // Отправляем подтверждение в Telegram
@@ -207,18 +251,31 @@ class PhoneVerificationService
             return true;
         }
 
+        // Если один из номеров пустой, не совпадают
+        if (empty($phone1) || empty($phone2)) {
+            return false;
+        }
+
         // Сравниваем последние 10 цифр (универсально для разных стран)
+        // Это работает для большинства международных форматов
         $last10Phone1 = substr($phone1, -10);
         $last10Phone2 = substr($phone2, -10);
 
-        if ($last10Phone1 === $last10Phone2 && strlen($last10Phone1) === 10) {
+        if ($last10Phone1 === $last10Phone2 && strlen($last10Phone1) === 10 && strlen($last10Phone2) === 10) {
             return true;
         }
 
-        // Если длины разные, но один номер является суффиксом другого
-        if (str_ends_with($phone1, $phone2) || str_ends_with($phone2, $phone1)) {
-            return true;
+        // Сравниваем последние 9 цифр (для некоторых форматов)
+        if (strlen($phone1) >= 9 && strlen($phone2) >= 9) {
+            $last9Phone1 = substr($phone1, -9);
+            $last9Phone2 = substr($phone2, -9);
+            if ($last9Phone1 === $last9Phone2 && strlen($last9Phone1) === 9 && strlen($last9Phone2) === 9) {
+                return true;
+            }
         }
+
+        // Убираем проверку на суффикс - она слишком мягкая и может привести к ложным совпадениям
+        // Вместо этого используем только точное совпадение или совпадение последних N цифр
 
         return false;
     }
