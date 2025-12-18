@@ -149,18 +149,25 @@ class PhoneVerificationService
             ];
         }
 
-        // Номера совпадают - генерируем код и отправляем
-        $code = PhoneVerification::generateCode();
+        // Номера совпадают — подтверждаем без кода
         $verification->update([
             'telegram_phone' => $telegramPhone,
-            'code' => $code,
+            'verified_at' => now(),
+            'code' => null,
         ]);
 
-        $this->telegramService->sendVerificationCode($verification->phone, $chatId, $code);
+        // Обновляем статус заказа, если он ожидал верификации
+        $order = $verification->order;
+        if ($order && $order->status === 'pending_verification') {
+            $order->update(['status' => 'new']);
+        }
+
+        // Отправляем подтверждение в Telegram
+        $this->telegramService->sendPhoneVerifiedSuccess($chatId, $verification->phone);
 
         return [
             'success' => true,
-            'message' => 'Номер подтвержден! Код подтверждения отправлен.',
+            'message' => 'Номер подтвержден! Заказ подтвержден.',
         ];
     }
 

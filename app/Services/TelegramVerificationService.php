@@ -98,4 +98,43 @@ class TelegramVerificationService
             return false;
         }
     }
+
+    public function sendPhoneVerifiedSuccess(string $chatId, string $phone): bool
+    {
+        $botToken = config('verification.telegram.bot_token');
+
+        if (empty($botToken)) {
+            Log::error('Telegram bot token is not configured');
+
+            return false;
+        }
+
+        $message = "✅ Номер подтвержден!\n\nТелефон: {$phone}\n\nСпасибо, заказ подтвержден.";
+
+        try {
+            $response = Http::timeout(10)
+                ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                    'chat_id' => $chatId,
+                    'text' => $message,
+                    'parse_mode' => 'HTML',
+                ]);
+
+            if ($response->successful()) {
+                return true;
+            }
+
+            Log::error('Failed to send Telegram success message', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Exception while sending Telegram success message', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
 }
