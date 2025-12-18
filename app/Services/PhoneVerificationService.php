@@ -139,7 +139,7 @@ class PhoneVerificationService
         $normalizedPhone = preg_replace('/[^0-9]/', '', $verification->phone);
         $normalizedTelegramPhone = preg_replace('/[^0-9]/', '', $telegramPhone);
 
-        // Проверяем совпадение (учитываем возможные варианты с +7 и 8)
+        // Проверяем совпадение (по полному совпадению или по последним 10 цифрам)
         $phoneMatches = $this->comparePhones($normalizedPhone, $normalizedTelegramPhone);
 
         if (! $phoneMatches) {
@@ -173,15 +173,25 @@ class PhoneVerificationService
 
     private function comparePhones(string $phone1, string $phone2): bool
     {
-        // Убираем префиксы +7, 7, 8 в начале
-        $phone1 = preg_replace('/^(\+?7|8)/', '', $phone1);
-        $phone2 = preg_replace('/^(\+?7|8)/', '', $phone2);
+        // Полное совпадение
+        if ($phone1 === $phone2) {
+            return true;
+        }
 
-        // Сравниваем последние 10 цифр
-        $phone1 = substr($phone1, -10);
-        $phone2 = substr($phone2, -10);
+        // Сравниваем последние 10 цифр (универсально для разных стран)
+        $last10Phone1 = substr($phone1, -10);
+        $last10Phone2 = substr($phone2, -10);
 
-        return $phone1 === $phone2;
+        if ($last10Phone1 === $last10Phone2 && strlen($last10Phone1) === 10) {
+            return true;
+        }
+
+        // Если длины разные, но один номер является суффиксом другого
+        if (str_ends_with($phone1, $phone2) || str_ends_with($phone2, $phone1)) {
+            return true;
+        }
+
+        return false;
     }
 
     public function initiateVerification(Order $order, string $phone, string $chatId): PhoneVerification
