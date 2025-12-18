@@ -1249,8 +1249,21 @@
                             // Сохраняем токен для проверки статуса
                             window.verificationToken = data.verification_token;
                             
-                            // Открываем Telegram бота
-                            window.open(data.bot_url, '_blank');
+                            // Открываем Telegram бота (поддержка iPhone через tg:// протокол)
+                            const botUrl = data.bot_url;
+                            
+                            // Определяем, является ли устройство мобильным
+                            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                            
+                            if (isMobile) {
+                                // Для мобильных устройств используем прямой переход
+                                // iOS Safari автоматически откроет приложение Telegram при переходе на https://t.me/
+                                // Формат ссылки: https://t.me/botname?start=token
+                                window.location.href = botUrl;
+                            } else {
+                                // Для десктопов открываем в новой вкладке
+                                window.open(botUrl, '_blank');
+                            }
                             
                             // Показываем индикатор ожидания
                             waitingDiv.classList.remove('hidden');

@@ -69,25 +69,105 @@ class TelegramWebhookController extends Controller
             $message = $update['message'];
             $chatId = $message['chat']['id'] ?? null;
             $text = $message['text'] ?? '';
+            $contact = $message['contact'] ?? null;
 
-            \Log::info('Processing message', ['chat_id' => $chatId, 'text' => $text]);
+            \Log::info('Processing message', ['chat_id' => $chatId, 'text' => $text, 'has_contact' => $contact !== null]);
+
+            // Обработка контакта (кнопка "поделиться номером")
+            if ($contact && $chatId) {
+                $telegramPhone = $contact['phone_number'] ?? null;
+                $contactUserId = $contact['user_id'] ?? null;
+
+                \Log::info('Processing contact', [
+                    'chat_id' => $chatId,
+                    'telegram_phone' => $telegramPhone,
+                    'contact_user_id' => $contactUserId,
+                ]);
+
+                // Проверяем, что контакт принадлежит пользователю, который отправил сообщение
+                if ($contactUserId && (string) $contactUserId !== (string) $chatId) {
+                    $responseText = '❌ Ошибка: вы можете поделиться только своим номером телефона.';
+                } else {
+                    // Ищем активную верификацию для этого чата
+                    $verification = \App\Models\PhoneVerification::where('telegram_chat_id', (string) $chatId)
+                        ->whereNull('verified_at')
+                        ->where('expires_at', '>', now())
+                        ->whereNotNull('verification_token')
+                        ->latest()
+                        ->first();
+
+                    if ($verification && $telegramPhone) {
+                        $result = $this->verificationService->verifyPhoneNumber(
+                            $verification->verification_token,
+                            (string) $chatId,
+                            $telegramPhone
+                        );
+
+                        $responseText = $result['message'];
+                        \Log::info('Phone verification result', [
+                            'success' => $result['success'],
+                            'verification_id' => $verification->id,
+                        ]);
+                    } else {
+                        $responseText = '❌ Ошибка: не найдена активная верификация. Пожалуйста, начните процесс верификации на сайте.';
+                        \Log::warning('No active verification found for contact', ['chat_id' => $chatId]);
+                    }
+                }
+
+                $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                    'chat_id' => $chatId,
+                    'text' => $responseText,
+                ]);
+
+                if (! $response->successful()) {
+                    \Log::error('Failed to send Telegram message', [
+                        'status' => $response->status(),
+                        'body' => $response->body(),
+                    ]);
+                }
+
+                return response()->json(['ok' => true]);
+            }
 
             // Обработка команды /start с токеном
             if (str_starts_with($text, '/start')) {
-                $parts = explode(' ', $text);
+                // Извлекаем токен из команды /start TOKEN
+                // Telegram может передавать токен как часть текста после /start
+                $parts = explode(' ', $text, 2);
                 $token = $parts[1] ?? null;
 
-                if ($token && $chatId) {
-                    \Log::info('Processing /start with token', ['token' => $token, 'chat_id' => $chatId]);
+                // Декодируем токен на случай URL-кодирования
+                if ($token) {
+                    $token = urldecode($token);
+                    $token = trim($token);
+                }
 
+                \Log::info('Processing /start command', [
+                    'text' => $text,
+                    'text_length' => strlen($text),
+                    'token' => $token,
+                    'token_length' => $token ? strlen($token) : 0,
+                    'chat_id' => $chatId,
+                    'parts_count' => count($parts),
+                    'all_parts' => $parts,
+                ]);
+
+                if ($token && $chatId) {
                     $verification = $this->verificationService->completeVerificationStart($token, (string) $chatId);
 
                     if ($verification) {
-                        $responseText = "✅ Код подтверждения отправлен!\n\nПроверьте сообщение с кодом и введите его на сайте для подтверждения заказа.";
-                        \Log::info('Verification completed successfully', ['verification_id' => $verification->id]);
+                        $responseText = "👋 Добро пожаловать!\n\nДля подтверждения заказа необходимо поделиться номером телефона. Нажмите кнопку ниже.";
+                        \Log::info('Verification started successfully', [
+                            'verification_id' => $verification->id,
+                            'order_id' => $verification->order_id,
+                        ]);
                     } else {
                         $responseText = '❌ Ошибка: токен верификации недействителен или истек. Пожалуйста, попробуйте снова на сайте.';
-                        \Log::warning('Verification failed', ['token' => $token]);
+                        \Log::warning('Verification failed', [
+                            'token' => $token,
+                            'token_length' => strlen($token),
+                            'chat_id' => $chatId,
+                        ]);
                     }
 
                     $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [

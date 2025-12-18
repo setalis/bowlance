@@ -33,18 +33,43 @@ class PhoneVerificationController extends Controller
                 $order->customer_phone
             );
 
+            $botToken = config('verification.telegram.bot_token');
             $botUsername = config('verification.telegram.bot_username');
 
+            $missingConfig = [];
+            if (empty($botToken)) {
+                $missingConfig[] = 'TELEGRAM_BOT_TOKEN';
+            }
             if (empty($botUsername)) {
-                \Log::error('Telegram bot username not configured');
+                $missingConfig[] = 'TELEGRAM_BOT_USERNAME';
+            }
+
+            if (! empty($missingConfig)) {
+                \Log::error('Telegram bot not configured', [
+                    'missing_config' => $missingConfig,
+                ]);
+
+                $message = 'Telegram бот не настроен. ';
+                if (config('app.debug')) {
+                    $message .= 'Отсутствуют переменные окружения: '.implode(', ', $missingConfig).'. ';
+                }
+                $message .= 'Добавьте их в файл .env. См. документацию TELEGRAM_SETUP.md';
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Telegram бот не настроен. Обратитесь к администратору.',
+                    'message' => $message,
                 ], 500);
             }
 
-            $botUrl = "https://t.me/{$botUsername}?start={$verification->verification_token}";
+            // URL-кодируем токен для безопасной передачи в URL
+            $encodedToken = urlencode($verification->verification_token);
+            $botUrl = "https://t.me/{$botUsername}?start={$encodedToken}";
+
+            \Log::info('Generated bot URL', [
+                'token' => $verification->verification_token,
+                'encoded_token' => $encodedToken,
+                'bot_url' => $botUrl,
+            ]);
 
             return response()->json([
                 'success' => true,
