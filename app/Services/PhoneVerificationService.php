@@ -103,7 +103,17 @@ class PhoneVerificationService
             ]);
 
             // Отправляем кнопку "поделиться номером" только если номер еще не проверен
-            if ($verification->telegram_phone === null) {
+            // Проверяем наличие колонки telegram_phone безопасно
+            try {
+                $telegramPhone = $verification->telegram_phone ?? null;
+                if ($telegramPhone === null) {
+                    $this->telegramService->sendCode($verification->phone, $chatId, '');
+                }
+            } catch (\Exception $e) {
+                // Если колонка отсутствует, просто отправляем кнопку
+                \Log::warning('Could not check telegram_phone, sending button anyway', [
+                    'error' => $e->getMessage(),
+                ]);
                 $this->telegramService->sendCode($verification->phone, $chatId, '');
             }
 
@@ -150,11 +160,30 @@ class PhoneVerificationService
         }
 
         // Номера совпадают — подтверждаем без кода
-        $verification->update([
-            'telegram_phone' => $telegramPhone,
-            'verified_at' => now(),
-            'code' => null,
-        ]);
+        try {
+            $verification->update([
+                'telegram_phone' => $telegramPhone,
+                'verified_at' => now(),
+                'code' => null,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Если ошибка связана с отсутствием колонки, обновляем без telegram_phone
+            if (str_contains($e->getMessage(), 'no such column: telegram_phone')) {
+                \Log::error('telegram_phone column does not exist in database. Please run migration.', [
+                    'migration' => '2025_12_18_161353_add_telegram_phone_to_phone_verifications_table',
+                    'error' => $e->getMessage(),
+                ]);
+
+                // Обновляем без telegram_phone
+                $verification->update([
+                    'verified_at' => now(),
+                    'code' => null,
+                ]);
+            } else {
+                // Другая ошибка БД - пробрасываем дальше
+                throw $e;
+            }
+        }
 
         // Обновляем статус заказа, если он ожидал верификации
         $order = $verification->order;

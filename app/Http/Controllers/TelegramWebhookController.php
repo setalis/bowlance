@@ -156,11 +156,38 @@ class TelegramWebhookController extends Controller
                     $verification = $this->verificationService->completeVerificationStart($token, (string) $chatId);
 
                     if ($verification) {
+                        // Кнопка отправляется внутри completeVerificationStart через sendCode
+                        // Но если по какой-то причине она не отправилась, отправляем здесь
                         $responseText = "👋 Добро пожаловать!\n\nДля подтверждения заказа необходимо поделиться номером телефона. Нажмите кнопку ниже.";
                         \Log::info('Verification started successfully', [
                             'verification_id' => $verification->id,
                             'order_id' => $verification->order_id,
                         ]);
+
+                        // Отправляем сообщение с кнопкой
+                        $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                            'chat_id' => $chatId,
+                            'text' => $responseText,
+                            'reply_markup' => [
+                                'keyboard' => [
+                                    [
+                                        [
+                                            'text' => '📱 Поделиться номером',
+                                            'request_contact' => true,
+                                        ],
+                                    ],
+                                ],
+                                'one_time_keyboard' => true,
+                                'resize_keyboard' => true,
+                            ],
+                        ]);
+
+                        if (! $response->successful()) {
+                            \Log::error('Failed to send Telegram message with button', [
+                                'status' => $response->status(),
+                                'body' => $response->body(),
+                            ]);
+                        }
                     } else {
                         $responseText = '❌ Ошибка: токен верификации недействителен или истек. Пожалуйста, попробуйте снова на сайте.';
                         \Log::warning('Verification failed', [
@@ -168,18 +195,18 @@ class TelegramWebhookController extends Controller
                             'token_length' => strlen($token),
                             'chat_id' => $chatId,
                         ]);
-                    }
 
-                    $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
-                        'chat_id' => $chatId,
-                        'text' => $responseText,
-                    ]);
-
-                    if (! $response->successful()) {
-                        \Log::error('Failed to send Telegram message', [
-                            'status' => $response->status(),
-                            'body' => $response->body(),
+                        $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                            'chat_id' => $chatId,
+                            'text' => $responseText,
                         ]);
+
+                        if (! $response->successful()) {
+                            \Log::error('Failed to send Telegram message', [
+                                'status' => $response->status(),
+                                'body' => $response->body(),
+                            ]);
+                        }
                     }
                 } else {
                     // Если команда /start без токена

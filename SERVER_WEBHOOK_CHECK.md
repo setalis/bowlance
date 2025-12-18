@@ -316,3 +316,5 @@ curl -s "https://api.telegram.org/botВАШ_ТОКЕН/getWebhookInfo" | jq '.re
 4. Убедитесь, что все переменные окружения установлены
 
 
+
+
