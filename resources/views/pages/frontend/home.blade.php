@@ -71,7 +71,7 @@
     @endif
 
     <!-- Modal для отображения блюд категории -->
-    <div id="category-modal" tabindex="-1" aria-hidden="true" inert class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div id="category-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="category-modal"></div>
         
@@ -112,7 +112,7 @@
     <!-- Backdrop -->
     <div id="cart-drawer-backdrop" class="hidden fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80 z-40" data-drawer-hide="cart-drawer"></div>
     
-    <div id="cart-drawer" class="fixed top-0 right-0 z-50 h-screen w-full overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-gray-800" tabindex="-1" aria-labelledby="cart-drawer-label" aria-hidden="true" inert>
+    <div id="cart-drawer" class="fixed top-0 right-0 z-50 h-screen w-full overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-gray-800" tabindex="-1" aria-labelledby="cart-drawer-label" aria-hidden="true">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-5 flex items-center mt-4 relative">
                 <h5 id="cart-drawer-label" class="inline-flex items-center text-xl font-semibold text-gray-900 dark:text-white">
@@ -181,7 +181,7 @@
     </div>
 
     <!-- Modal оформления заказа -->
-    <div id="checkout-modal" tabindex="-1" aria-hidden="true" inert aria-labelledby="checkout-modal-title" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div id="checkout-modal" tabindex="-1" aria-hidden="true" aria-labelledby="checkout-modal-title" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="checkout-modal"></div>
         
@@ -263,9 +263,9 @@
     </div>
 
     <!-- Modal верификации телефона -->
-    <div id="verification-modal" tabindex="-1" aria-hidden="true" inert aria-labelledby="verification-modal-title" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div id="verification-modal" tabindex="-1" aria-hidden="true" aria-labelledby="verification-modal-title" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
         <!-- Backdrop -->
-        <div id="verification-modal-backdrop" class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
+        <div id="verification-modal-backdrop" class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="verification-modal"></div>
         
         <div class="relative p-4 w-full max-w-md max-h-full z-50">
             <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
@@ -274,7 +274,7 @@
                     <h3 id="verification-modal-title" class="text-xl font-semibold text-gray-900 dark:text-white">
                         Подтверждение телефона
                     </h3>
-                    <button type="button" id="verification-modal-close" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <button type="button" id="verification-modal-close" data-modal-hide="verification-modal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
                         <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
                         </svg>
@@ -668,35 +668,24 @@
             const drawer = document.getElementById('cart-drawer');
             
             if (drawerInstance) {
-                // Сначала убираем inert и устанавливаем aria-hidden="false"
-                if (drawer) {
-                    drawer.removeAttribute('inert');
-                    drawer.setAttribute('aria-hidden', 'false');
-                }
                 drawerInstance.show();
+            } else {
+                // Fallback - используем data-атрибут для триггера
+                const triggerButton = document.querySelector('[data-drawer-toggle="cart-drawer"]');
+                if (triggerButton) {
+                    triggerButton.click();
                 } else {
-                    // Fallback - используем data-атрибут для триггера
-                    const triggerButton = document.querySelector('[data-drawer-toggle="cart-drawer"]');
-                    if (triggerButton) {
-                        if (drawer) {
-                            drawer.removeAttribute('inert');
-                            drawer.setAttribute('aria-hidden', 'false');
-                        }
-                        triggerButton.click();
-                    } else {
-                        // Последний fallback - прямое управление классами
-                        const backdrop = document.getElementById('cart-drawer-backdrop');
-                        if (drawer) {
-                            drawer.removeAttribute('inert');
-                            drawer.setAttribute('aria-hidden', 'false');
-                            drawer.classList.remove('-translate-x-full');
-                            drawer.classList.add('translate-x-0');
-                            if (backdrop) {
-                                backdrop.classList.remove('hidden');
-                            }
+                    // Последний fallback - прямое управление классами
+                    const backdrop = document.getElementById('cart-drawer-backdrop');
+                    if (drawer) {
+                        drawer.classList.remove('-translate-x-full');
+                        drawer.classList.add('translate-x-0');
+                        if (backdrop) {
+                            backdrop.classList.remove('hidden');
                         }
                     }
                 }
+            }
         };
 
         window.closeCartDrawer = function() {
@@ -713,32 +702,17 @@
             
             if (drawerInstance) {
                 drawerInstance.hide();
-                // Устанавливаем aria-hidden и inert после закрытия
-                if (drawer) {
-                    setTimeout(() => {
-                        drawer.setAttribute('aria-hidden', 'true');
-                        drawer.setAttribute('inert', '');
-                    }, 100);
-                }
             } else {
                 // Fallback - используем data-атрибут для закрытия
                 const closeButton = document.querySelector('[data-drawer-hide="cart-drawer"]');
                 if (closeButton) {
                     closeButton.click();
-                    if (drawer) {
-                        setTimeout(() => {
-                            drawer.setAttribute('aria-hidden', 'true');
-                            drawer.setAttribute('inert', '');
-                        }, 100);
-                    }
                 } else {
                     // Последний fallback - прямое управление классами
                     const backdrop = document.getElementById('cart-drawer-backdrop');
                     if (drawer) {
                         drawer.classList.remove('translate-x-0');
                         drawer.classList.add('-translate-x-full');
-                        drawer.setAttribute('aria-hidden', 'true');
-                        drawer.setAttribute('inert', '');
                         if (backdrop) {
                             backdrop.classList.add('hidden');
                         }
@@ -920,38 +894,7 @@
                 });
             });
 
-            // Управление aria-hidden и inert для drawer при изменениях класса
-            const cartDrawer = document.getElementById('cart-drawer');
-            if (cartDrawer) {
-                const drawerObserver = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                            const isHidden = cartDrawer.classList.contains('-translate-x-full') || 
-                                           cartDrawer.classList.contains('hidden');
-                            
-                            if (isHidden) {
-                                // Сначала убираем фокус с элементов внутри drawer
-                                const focusedElement = cartDrawer.querySelector(':focus');
-                                if (focusedElement) {
-                                    focusedElement.blur();
-                                }
-                                // Затем устанавливаем aria-hidden="true" и добавляем inert
-                                cartDrawer.setAttribute('aria-hidden', 'true');
-                                cartDrawer.setAttribute('inert', '');
-                            } else {
-                                // Убираем inert и устанавливаем aria-hidden="false"
-                                cartDrawer.removeAttribute('inert');
-                                cartDrawer.setAttribute('aria-hidden', 'false');
-                            }
-                        }
-                    });
-                });
-                
-                drawerObserver.observe(cartDrawer, {
-                    attributes: true,
-                    attributeFilter: ['class']
-                });
-            }
+            // Flowbite автоматически управляет aria-hidden для drawer
 
             // Обработчик кнопки "Оформить заказ"
             const checkoutButton = document.getElementById('checkout-button');
@@ -976,121 +919,76 @@
                 });
             }
 
-            // Инициализация модального окна через Flowbite API
+            // Инициализация модальных окон через Flowbite API
             if (window.Flowbite && window.Flowbite.Modal) {
-                const modalElement = document.getElementById('checkout-modal');
-                if (modalElement) {
+                // Инициализация checkout-modal
+                const checkoutModal = document.getElementById('checkout-modal');
+                if (checkoutModal) {
                     try {
-                        const modalOptions = {
+                        new window.Flowbite.Modal(checkoutModal, {
                             placement: 'center',
                             backdrop: 'dynamic',
                             backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
                             closable: true,
-                            onShow: () => {
-                                // Убираем inert и устанавливаем aria-hidden="false" ДО того, как элементы получат фокус
-                                modalElement.removeAttribute('inert');
-                                modalElement.setAttribute('aria-hidden', 'false');
-                            },
                             onHide: () => {
-                                // Сначала убираем фокус с элементов внутри модального окна
-                                const focusedElement = modalElement.querySelector(':focus');
-                                if (focusedElement) {
-                                    focusedElement.blur();
-                                }
-                                // Затем устанавливаем aria-hidden="true" и добавляем inert
-                                modalElement.setAttribute('aria-hidden', 'true');
-                                modalElement.setAttribute('inert', '');
-                            },
-                        };
-                        new window.Flowbite.Modal(modalElement, modalOptions);
-                    } catch (e) {
-                        console.log('Modal already initialized or error:', e);
-                    }
-                }
-                
-                // Добавляем MutationObserver для category-modal для автоматического обновления aria-hidden
-                const categoryModal = document.getElementById('category-modal');
-                if (categoryModal) {
-                    const categoryModalObserver = new MutationObserver(function(mutations) {
-                        mutations.forEach(function(mutation) {
-                            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                                const isHidden = categoryModal.classList.contains('hidden');
-                                
-                                if (isHidden) {
-                                    // Сначала убираем фокус с элементов внутри модального окна
-                                    const focusedElement = categoryModal.querySelector(':focus');
-                                    if (focusedElement) {
-                                        focusedElement.blur();
-                                    }
-                                    // Затем устанавливаем aria-hidden="true" и добавляем inert
-                                    categoryModal.setAttribute('aria-hidden', 'true');
-                                    categoryModal.setAttribute('inert', '');
-                                } else {
-                                    // Сначала убираем inert и устанавливаем aria-hidden="false" ДО установки фокуса
-                                    categoryModal.removeAttribute('inert');
-                                    categoryModal.setAttribute('aria-hidden', 'false');
-                                    // Используем requestAnimationFrame для гарантии, что DOM обновлен
-                                    requestAnimationFrame(() => {
-                                        setTimeout(() => {
-                                            const firstButton = categoryModal.querySelector('button, a');
-                                            if (firstButton && document.activeElement !== firstButton) {
-                                                firstButton.focus();
-                                            }
-                                        }, 50);
-                                    });
-                                }
-                            }
-                        });
-                    });
-                    
-                    categoryModalObserver.observe(categoryModal, {
-                        attributes: true,
-                        attributeFilter: ['class']
-                    });
-                }
-            }
-
-            // Управление aria-hidden при ручном открытии/закрытии (fallback)
-            const checkoutModal = document.getElementById('checkout-modal');
-            if (checkoutModal) {
-                // Наблюдатель за изменениями класса hidden
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                            const isHidden = checkoutModal.classList.contains('hidden');
-                            
-                            if (isHidden) {
-                                // Сначала убираем фокус с элементов внутри модального окна
+                                // Убираем фокус с элементов внутри модального окна при закрытии
                                 const focusedElement = checkoutModal.querySelector(':focus');
                                 if (focusedElement) {
                                     focusedElement.blur();
                                 }
-                                // Затем устанавливаем aria-hidden="true" и добавляем inert
-                                checkoutModal.setAttribute('aria-hidden', 'true');
-                                checkoutModal.setAttribute('inert', '');
-                            } else {
-                                // Сначала убираем inert и устанавливаем aria-hidden="false" ДО установки фокуса
-                                checkoutModal.removeAttribute('inert');
-                                checkoutModal.setAttribute('aria-hidden', 'false');
-                                // Используем requestAnimationFrame для гарантии, что DOM обновлен
-                                requestAnimationFrame(() => {
-                                    setTimeout(() => {
-                                        const firstInput = checkoutModal.querySelector('input, textarea, button');
-                                        if (firstInput && !firstInput.disabled) {
-                                            firstInput.focus();
-                                        }
-                                    }, 50);
-                                });
-                            }
-                        }
-                    });
-                });
+                            },
+                        });
+                    } catch (e) {
+                        console.log('Checkout modal already initialized or error:', e);
+                    }
+                }
                 
-                observer.observe(checkoutModal, {
-                    attributes: true,
-                    attributeFilter: ['class']
-                });
+                // Инициализация category-modal
+                const categoryModal = document.getElementById('category-modal');
+                if (categoryModal) {
+                    try {
+                        new window.Flowbite.Modal(categoryModal, {
+                            placement: 'center',
+                            backdrop: 'dynamic',
+                            backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+                            closable: true,
+                            onHide: () => {
+                                // Убираем фокус с элементов внутри модального окна при закрытии
+                                const focusedElement = categoryModal.querySelector(':focus');
+                                if (focusedElement) {
+                                    focusedElement.blur();
+                                }
+                            },
+                        });
+                    } catch (e) {
+                        console.log('Category modal already initialized or error:', e);
+                    }
+                }
+                
+                // Инициализация verification-modal
+                const verificationModal = document.getElementById('verification-modal');
+                if (verificationModal) {
+                    try {
+                        new window.Flowbite.Modal(verificationModal, {
+                            placement: 'center',
+                            backdrop: 'dynamic',
+                            backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+                            closable: true,
+                            onHide: () => {
+                                // Убираем фокус с элементов внутри модального окна при закрытии
+                                const focusedElement = verificationModal.querySelector(':focus');
+                                if (focusedElement) {
+                                    focusedElement.blur();
+                                }
+                            },
+                        });
+                    } catch (e) {
+                        console.log('Verification modal already initialized or error:', e);
+                    }
+                }
             }
+
+            // Управление aria-hidden при ручном открытии/закрытии (fallback)
 
             // Обработчик формы оформления заказа
             const checkoutForm = document.getElementById('checkout-form');
@@ -1191,7 +1089,7 @@
             window.closeCheckoutModal = function() {
                 const modal = document.getElementById('checkout-modal');
                 if (modal) {
-                    // Сначала убираем фокус с элементов внутри модального окна
+                    // Убираем фокус с элементов внутри модального окна
                     const focusedElement = modal.querySelector(':focus');
                     if (focusedElement) {
                         focusedElement.blur();
@@ -1203,14 +1101,9 @@
                             modalInstance.hide();
                         } else {
                             modal.classList.add('hidden');
-                            modal.setAttribute('aria-hidden', 'true');
-                            modal.setAttribute('inert', '');
                         }
                     } else {
                         modal.classList.add('hidden');
-                        modal.setAttribute('aria-hidden', 'true');
-                        modal.setAttribute('inert', '');
-                        // Убираем фокус с элементов внутри модального окна
                         const focusedElement = modal.querySelector(':focus');
                         if (focusedElement) {
                             focusedElement.blur();
@@ -1235,38 +1128,46 @@
                         telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
                     }
                     
-                    // Сначала убираем inert и устанавливаем aria-hidden="false" ДО открытия модального окна
-                    modal.removeAttribute('inert');
-                    modal.setAttribute('aria-hidden', 'false');
-                    // Затем открываем модальное окно
-                    modal.classList.remove('hidden');
-                    
-                    // Устанавливаем фокус на первый интерактивный элемент после небольшой задержки
-                    // Используем requestAnimationFrame для гарантии, что DOM обновлен
-                    requestAnimationFrame(() => {
-                        setTimeout(() => {
-                            const firstButton = modal.querySelector('button, a');
-                            if (firstButton) {
-                                firstButton.focus();
-                            }
-                        }, 50);
-                    });
+                    // Используем Flowbite API для открытия модального окна
+                    if (window.Flowbite && window.Flowbite.getInstance) {
+                        const modalInstance = window.Flowbite.getInstance('modal', 'verification-modal');
+                        if (modalInstance) {
+                            modalInstance.show();
+                        } else {
+                            // Fallback - прямое открытие
+                            modal.classList.remove('hidden');
+                        }
+                    } else {
+                        // Fallback - прямое открытие
+                        modal.classList.remove('hidden');
+                    }
                 }
             };
 
             window.closeVerificationModal = function() {
                 const modal = document.getElementById('verification-modal');
                 if (modal) {
-                    // Сначала убираем фокус с элементов внутри модального окна
-                    const focusedElement = modal.querySelector(':focus');
-                    if (focusedElement) {
-                        focusedElement.blur();
+                    // Используем Flowbite API для закрытия модального окна
+                    if (window.Flowbite && window.Flowbite.getInstance) {
+                        const modalInstance = window.Flowbite.getInstance('modal', 'verification-modal');
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        } else {
+                            // Fallback - убираем фокус и закрываем
+                            const focusedElement = modal.querySelector(':focus');
+                            if (focusedElement) {
+                                focusedElement.blur();
+                            }
+                            modal.classList.add('hidden');
+                        }
+                    } else {
+                        // Fallback - убираем фокус и закрываем
+                        const focusedElement = modal.querySelector(':focus');
+                        if (focusedElement) {
+                            focusedElement.blur();
+                        }
+                        modal.classList.add('hidden');
                     }
-                    
-                    // Затем устанавливаем aria-hidden="true", добавляем inert и закрываем модальное окно
-                    modal.setAttribute('aria-hidden', 'true');
-                    modal.setAttribute('inert', '');
-                    modal.classList.add('hidden');
                     
                     // Сбрасываем состояние формы
                     document.getElementById('verification-step-1').classList.remove('hidden');
