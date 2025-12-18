@@ -975,21 +975,60 @@
                             backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
                             closable: true,
                             onShow: () => {
+                                // Устанавливаем aria-hidden="false" ДО того, как элементы получат фокус
                                 modalElement.setAttribute('aria-hidden', 'false');
                             },
                             onHide: () => {
-                                modalElement.setAttribute('aria-hidden', 'true');
-                                // Убираем фокус с элементов внутри модального окна
+                                // Сначала убираем фокус с элементов внутри модального окна
                                 const focusedElement = modalElement.querySelector(':focus');
                                 if (focusedElement) {
                                     focusedElement.blur();
                                 }
+                                // Затем устанавливаем aria-hidden="true"
+                                modalElement.setAttribute('aria-hidden', 'true');
                             },
                         };
                         new window.Flowbite.Modal(modalElement, modalOptions);
                     } catch (e) {
                         console.log('Modal already initialized or error:', e);
                     }
+                }
+                
+                // Добавляем MutationObserver для category-modal для автоматического обновления aria-hidden
+                const categoryModal = document.getElementById('category-modal');
+                if (categoryModal) {
+                    const categoryModalObserver = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                                const isHidden = categoryModal.classList.contains('hidden');
+                                
+                                if (isHidden) {
+                                    // Сначала убираем фокус с элементов внутри модального окна
+                                    const focusedElement = categoryModal.querySelector(':focus');
+                                    if (focusedElement) {
+                                        focusedElement.blur();
+                                    }
+                                    // Затем устанавливаем aria-hidden="true"
+                                    categoryModal.setAttribute('aria-hidden', 'true');
+                                } else {
+                                    // Сначала устанавливаем aria-hidden="false" ДО установки фокуса
+                                    categoryModal.setAttribute('aria-hidden', 'false');
+                                    // Небольшая задержка для установки фокуса после обновления aria-hidden
+                                    setTimeout(() => {
+                                        const firstButton = categoryModal.querySelector('button, a');
+                                        if (firstButton && document.activeElement !== firstButton) {
+                                            firstButton.focus();
+                                        }
+                                    }, 50);
+                                }
+                            }
+                        });
+                    });
+                    
+                    categoryModalObserver.observe(categoryModal, {
+                        attributes: true,
+                        attributeFilter: ['class']
+                    });
                 }
             }
 
@@ -1001,10 +1040,18 @@
                     mutations.forEach(function(mutation) {
                         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                             const isHidden = checkoutModal.classList.contains('hidden');
-                            checkoutModal.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
                             
-                            // Если модальное окно открывается, убираем фокус с элементов, которые могут быть скрыты
-                            if (!isHidden) {
+                            if (isHidden) {
+                                // Сначала убираем фокус с элементов внутри модального окна
+                                const focusedElement = checkoutModal.querySelector(':focus');
+                                if (focusedElement) {
+                                    focusedElement.blur();
+                                }
+                                // Затем устанавливаем aria-hidden="true"
+                                checkoutModal.setAttribute('aria-hidden', 'true');
+                            } else {
+                                // Сначала устанавливаем aria-hidden="false" ДО установки фокуса
+                                checkoutModal.setAttribute('aria-hidden', 'false');
                                 // Убеждаемся, что фокус находится на первом интерактивном элементе
                                 setTimeout(() => {
                                     const firstInput = checkoutModal.querySelector('input, textarea, button');
@@ -1163,11 +1210,12 @@
                         telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
                     }
                     
-                    // Открываем модальное окно
-                    modal.classList.remove('hidden');
+                    // Сначала устанавливаем aria-hidden="false" ДО открытия модального окна
                     modal.setAttribute('aria-hidden', 'false');
+                    // Затем открываем модальное окно
+                    modal.classList.remove('hidden');
                     
-                    // Устанавливаем фокус на первый интерактивный элемент
+                    // Устанавливаем фокус на первый интерактивный элемент после небольшой задержки
                     setTimeout(() => {
                         const firstButton = modal.querySelector('button, a');
                         if (firstButton) {
@@ -1180,15 +1228,15 @@
             window.closeVerificationModal = function() {
                 const modal = document.getElementById('verification-modal');
                 if (modal) {
-                    // Закрываем модальное окно вручную
-                    modal.classList.add('hidden');
-                    modal.setAttribute('aria-hidden', 'true');
-                    
-                    // Убираем фокус с элементов внутри модального окна
+                    // Сначала убираем фокус с элементов внутри модального окна
                     const focusedElement = modal.querySelector(':focus');
                     if (focusedElement) {
                         focusedElement.blur();
                     }
+                    
+                    // Затем устанавливаем aria-hidden="true" и закрываем модальное окно
+                    modal.setAttribute('aria-hidden', 'true');
+                    modal.classList.add('hidden');
                     
                     // Сбрасываем состояние формы
                     document.getElementById('verification-step-1').classList.remove('hidden');
@@ -1270,20 +1318,55 @@
                             // Сохраняем токен для проверки статуса
                             window.verificationToken = data.verification_token;
                             
-                            // Открываем Telegram бота (поддержка iPhone через tg:// протокол)
+                            // Открываем Telegram бота
                             const botUrl = data.bot_url;
                             
                             // Определяем, является ли устройство мобильным
                             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                             
-                            if (isMobile) {
-                                // Для мобильных устройств используем прямой переход
-                                // iOS Safari автоматически откроет приложение Telegram при переходе на https://t.me/
-                                // Формат ссылки: https://t.me/botname?start=token
+                            // Пробуем открыть Telegram бота
+                            try {
+                                if (isMobile) {
+                                    // Для мобильных устройств пробуем сначала tg:// протокол
+                                    const botName = botUrl.match(/t\.me\/([^?]+)/)?.[1];
+                                    const token = botUrl.match(/start=([^&]+)/)?.[1];
+                                    
+                                    if (botName) {
+                                        // Формируем ссылку tg://
+                                        const tgUrl = token 
+                                            ? `tg://resolve?domain=${botName}&start=${token}`
+                                            : `tg://resolve?domain=${botName}`;
+                                        
+                                        // Пробуем открыть через tg:// протокол
+                                        window.location.href = tgUrl;
+                                        
+                                        // Если через 2 секунды ничего не произошло, открываем через https://
+                                        setTimeout(() => {
+                                            window.location.href = botUrl;
+                                        }, 2000);
+                                    } else {
+                                        // Если не удалось извлечь имя бота, используем обычную ссылку
+                                        window.location.href = botUrl;
+                                    }
+                                } else {
+                                    // Для десктопов открываем в новой вкладке
+                                    const newWindow = window.open(botUrl, '_blank');
+                                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                                        // Если popup заблокирован, показываем сообщение с возможностью скопировать ссылку
+                                        const userConfirmed = confirm('Пожалуйста, разрешите открытие всплывающих окон для этого сайта.\n\nИли нажмите OK, чтобы скопировать ссылку в буфер обмена.');
+                                        if (userConfirmed) {
+                                            navigator.clipboard.writeText(botUrl).then(() => {
+                                                alert('Ссылка скопирована в буфер обмена. Вставьте её в адресную строку браузера.');
+                                            }).catch(() => {
+                                                prompt('Скопируйте эту ссылку:', botUrl);
+                                            });
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Ошибка при открытии Telegram:', error);
+                                // В случае ошибки просто открываем обычную ссылку
                                 window.location.href = botUrl;
-                            } else {
-                                // Для десктопов открываем в новой вкладке
-                                window.open(botUrl, '_blank');
                             }
                             
                             // Показываем индикатор ожидания

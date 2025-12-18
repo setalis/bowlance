@@ -157,15 +157,16 @@ class TelegramWebhookController extends Controller
 
                     if ($verification) {
                         // Кнопка отправляется внутри completeVerificationStart через sendCode
-                        // Но если по какой-то причине она не отправилась, отправляем здесь
+                        // Дополнительно отправляем приветственное сообщение с кнопкой для надежности
                         $responseText = "👋 Добро пожаловать!\n\nДля подтверждения заказа необходимо поделиться номером телефона. Нажмите кнопку ниже.";
                         \Log::info('Verification started successfully', [
                             'verification_id' => $verification->id,
                             'order_id' => $verification->order_id,
+                            'chat_id' => $chatId,
                         ]);
 
-                        // Отправляем сообщение с кнопкой
-                        $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                        // Отправляем сообщение с кнопкой (дублируем для надежности)
+                        $response = Http::timeout(10)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
                             'chat_id' => $chatId,
                             'text' => $responseText,
                             'reply_markup' => [
@@ -186,6 +187,12 @@ class TelegramWebhookController extends Controller
                             \Log::error('Failed to send Telegram message with button', [
                                 'status' => $response->status(),
                                 'body' => $response->body(),
+                                'chat_id' => $chatId,
+                            ]);
+                        } else {
+                            \Log::info('Telegram message with button sent successfully', [
+                                'chat_id' => $chatId,
+                                'verification_id' => $verification->id,
                             ]);
                         }
                     } else {
