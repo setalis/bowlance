@@ -265,7 +265,7 @@
     <!-- Modal верификации телефона -->
     <div id="verification-modal" tabindex="-1" aria-hidden="true" aria-labelledby="verification-modal-title" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
         <!-- Backdrop -->
-        <div id="verification-modal-backdrop" class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="verification-modal"></div>
+        <div id="verification-modal-backdrop" class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
         
         <div class="relative p-4 w-full max-w-md max-h-full z-50">
             <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
@@ -274,7 +274,7 @@
                     <h3 id="verification-modal-title" class="text-xl font-semibold text-gray-900 dark:text-white">
                         Подтверждение телефона
                     </h3>
-                    <button type="button" id="verification-modal-close" data-modal-hide="verification-modal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <button type="button" id="verification-modal-close" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
                         <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
                         </svg>
@@ -920,9 +920,9 @@
             }
 
             // Инициализация модальных окон через Flowbite API
-            // Сохраняем экземпляры в глобальные переменные для последующего использования
+            // Ждем полной загрузки Flowbite
             function initializeModals() {
-                if (window.Flowbite && window.Flowbite.Modal) {
+                if (window.Flowbite && window.Flowbite.Modal && typeof window.Flowbite.Modal === 'function') {
                     // Инициализация checkout-modal
                     const checkoutModal = document.getElementById('checkout-modal');
                     if (checkoutModal && !window.checkoutModalInstance) {
@@ -981,18 +981,42 @@
                                     }
                                 },
                             });
+                            // Убеждаемся, что экземпляр зарегистрирован в Flowbite
+                            if (window.Flowbite.getInstance) {
+                                // Проверяем, что экземпляр доступен через getInstance
+                                const instance = window.Flowbite.getInstance('modal', 'verification-modal');
+                                if (!instance) {
+                                    console.warn('Verification modal instance not registered in Flowbite');
+                                }
+                            }
                         } catch (e) {
                             console.log('Verification modal already initialized or error:', e);
                         }
                     }
                 } else {
                     // Если Flowbite еще не загружен, пробуем позже
-                    setTimeout(initializeModals, 100);
+                    if (window.flowbiteInitAttempts === undefined) {
+                        window.flowbiteInitAttempts = 0;
+                    }
+                    window.flowbiteInitAttempts++;
+                    if (window.flowbiteInitAttempts < 50) { // Максимум 5 секунд ожидания
+                        setTimeout(initializeModals, 100);
+                    } else {
+                        console.error('Flowbite failed to load after 5 seconds');
+                    }
                 }
             }
             
-            // Инициализируем модальные окна
-            initializeModals();
+            // Инициализируем модальные окна после загрузки DOM и Flowbite
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Даем Flowbite время на инициализацию
+                    setTimeout(initializeModals, 200);
+                });
+            } else {
+                // DOM уже загружен
+                setTimeout(initializeModals, 200);
+            }
 
             // Управление aria-hidden при ручном открытии/закрытии (fallback)
 
@@ -1133,20 +1157,25 @@
                         telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
                     }
                     
-                    // Используем сохраненный экземпляр или Flowbite API
+                    // Используем сохраненный экземпляр или прямое открытие
                     if (window.verificationModalInstance) {
                         window.verificationModalInstance.show();
-                    } else if (window.Flowbite && window.Flowbite.getInstance) {
-                        const modalInstance = window.Flowbite.getInstance('modal', 'verification-modal');
-                        if (modalInstance) {
-                            modalInstance.show();
-                        } else {
-                            // Fallback - прямое открытие
-                            modal.classList.remove('hidden');
-                        }
                     } else {
-                        // Fallback - прямое открытие
+                        // Fallback - прямое открытие (если Flowbite еще не инициализирован)
                         modal.classList.remove('hidden');
+                        // Пробуем инициализировать, если Flowbite уже загружен
+                        if (window.Flowbite && window.Flowbite.Modal && !window.verificationModalInstance) {
+                            try {
+                                window.verificationModalInstance = new window.Flowbite.Modal(modal, {
+                                    placement: 'center',
+                                    backdrop: 'dynamic',
+                                    backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+                                    closable: true,
+                                });
+                            } catch (e) {
+                                console.log('Could not initialize verification modal:', e);
+                            }
+                        }
                     }
                 }
             };
@@ -1154,21 +1183,9 @@
             window.closeVerificationModal = function() {
                 const modal = document.getElementById('verification-modal');
                 if (modal) {
-                    // Используем сохраненный экземпляр или Flowbite API
+                    // Используем сохраненный экземпляр или прямое закрытие
                     if (window.verificationModalInstance) {
                         window.verificationModalInstance.hide();
-                    } else if (window.Flowbite && window.Flowbite.getInstance) {
-                        const modalInstance = window.Flowbite.getInstance('modal', 'verification-modal');
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        } else {
-                            // Fallback - убираем фокус и закрываем
-                            const focusedElement = modal.querySelector(':focus');
-                            if (focusedElement) {
-                                focusedElement.blur();
-                            }
-                            modal.classList.add('hidden');
-                        }
                     } else {
                         // Fallback - убираем фокус и закрываем
                         const focusedElement = modal.querySelector(':focus');
