@@ -920,73 +920,79 @@
             }
 
             // Инициализация модальных окон через Flowbite API
-            if (window.Flowbite && window.Flowbite.Modal) {
-                // Инициализация checkout-modal
-                const checkoutModal = document.getElementById('checkout-modal');
-                if (checkoutModal) {
-                    try {
-                        new window.Flowbite.Modal(checkoutModal, {
-                            placement: 'center',
-                            backdrop: 'dynamic',
-                            backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
-                            closable: true,
-                            onHide: () => {
-                                // Убираем фокус с элементов внутри модального окна при закрытии
-                                const focusedElement = checkoutModal.querySelector(':focus');
-                                if (focusedElement) {
-                                    focusedElement.blur();
-                                }
-                            },
-                        });
-                    } catch (e) {
-                        console.log('Checkout modal already initialized or error:', e);
+            // Сохраняем экземпляры в глобальные переменные для последующего использования
+            function initializeModals() {
+                if (window.Flowbite && window.Flowbite.Modal) {
+                    // Инициализация checkout-modal
+                    const checkoutModal = document.getElementById('checkout-modal');
+                    if (checkoutModal && !window.checkoutModalInstance) {
+                        try {
+                            window.checkoutModalInstance = new window.Flowbite.Modal(checkoutModal, {
+                                placement: 'center',
+                                backdrop: 'dynamic',
+                                backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+                                closable: true,
+                                onHide: () => {
+                                    const focusedElement = checkoutModal.querySelector(':focus');
+                                    if (focusedElement) {
+                                        focusedElement.blur();
+                                    }
+                                },
+                            });
+                        } catch (e) {
+                            console.log('Checkout modal already initialized or error:', e);
+                        }
                     }
-                }
-                
-                // Инициализация category-modal
-                const categoryModal = document.getElementById('category-modal');
-                if (categoryModal) {
-                    try {
-                        new window.Flowbite.Modal(categoryModal, {
-                            placement: 'center',
-                            backdrop: 'dynamic',
-                            backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
-                            closable: true,
-                            onHide: () => {
-                                // Убираем фокус с элементов внутри модального окна при закрытии
-                                const focusedElement = categoryModal.querySelector(':focus');
-                                if (focusedElement) {
-                                    focusedElement.blur();
-                                }
-                            },
-                        });
-                    } catch (e) {
-                        console.log('Category modal already initialized or error:', e);
+                    
+                    // Инициализация category-modal
+                    const categoryModal = document.getElementById('category-modal');
+                    if (categoryModal && !window.categoryModalInstance) {
+                        try {
+                            window.categoryModalInstance = new window.Flowbite.Modal(categoryModal, {
+                                placement: 'center',
+                                backdrop: 'dynamic',
+                                backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+                                closable: true,
+                                onHide: () => {
+                                    const focusedElement = categoryModal.querySelector(':focus');
+                                    if (focusedElement) {
+                                        focusedElement.blur();
+                                    }
+                                },
+                            });
+                        } catch (e) {
+                            console.log('Category modal already initialized or error:', e);
+                        }
                     }
-                }
-                
-                // Инициализация verification-modal
-                const verificationModal = document.getElementById('verification-modal');
-                if (verificationModal) {
-                    try {
-                        new window.Flowbite.Modal(verificationModal, {
-                            placement: 'center',
-                            backdrop: 'dynamic',
-                            backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
-                            closable: true,
-                            onHide: () => {
-                                // Убираем фокус с элементов внутри модального окна при закрытии
-                                const focusedElement = verificationModal.querySelector(':focus');
-                                if (focusedElement) {
-                                    focusedElement.blur();
-                                }
-                            },
-                        });
-                    } catch (e) {
-                        console.log('Verification modal already initialized or error:', e);
+                    
+                    // Инициализация verification-modal
+                    const verificationModal = document.getElementById('verification-modal');
+                    if (verificationModal && !window.verificationModalInstance) {
+                        try {
+                            window.verificationModalInstance = new window.Flowbite.Modal(verificationModal, {
+                                placement: 'center',
+                                backdrop: 'dynamic',
+                                backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+                                closable: true,
+                                onHide: () => {
+                                    const focusedElement = verificationModal.querySelector(':focus');
+                                    if (focusedElement) {
+                                        focusedElement.blur();
+                                    }
+                                },
+                            });
+                        } catch (e) {
+                            console.log('Verification modal already initialized or error:', e);
+                        }
                     }
+                } else {
+                    // Если Flowbite еще не загружен, пробуем позже
+                    setTimeout(initializeModals, 100);
                 }
             }
+            
+            // Инициализируем модальные окна
+            initializeModals();
 
             // Управление aria-hidden при ручном открытии/закрытии (fallback)
 
@@ -1095,7 +1101,10 @@
                         focusedElement.blur();
                     }
                     
-                    if (window.Flowbite && window.Flowbite.getInstance) {
+                    // Используем сохраненный экземпляр или Flowbite API
+                    if (window.checkoutModalInstance) {
+                        window.checkoutModalInstance.hide();
+                    } else if (window.Flowbite && window.Flowbite.getInstance) {
                         const modalInstance = window.Flowbite.getInstance('modal', 'checkout-modal');
                         if (modalInstance) {
                             modalInstance.hide();
@@ -1104,10 +1113,6 @@
                         }
                     } else {
                         modal.classList.add('hidden');
-                        const focusedElement = modal.querySelector(':focus');
-                        if (focusedElement) {
-                            focusedElement.blur();
-                        }
                     }
                 }
             };
@@ -1128,8 +1133,10 @@
                         telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
                     }
                     
-                    // Используем Flowbite API для открытия модального окна
-                    if (window.Flowbite && window.Flowbite.getInstance) {
+                    // Используем сохраненный экземпляр или Flowbite API
+                    if (window.verificationModalInstance) {
+                        window.verificationModalInstance.show();
+                    } else if (window.Flowbite && window.Flowbite.getInstance) {
                         const modalInstance = window.Flowbite.getInstance('modal', 'verification-modal');
                         if (modalInstance) {
                             modalInstance.show();
@@ -1147,8 +1154,10 @@
             window.closeVerificationModal = function() {
                 const modal = document.getElementById('verification-modal');
                 if (modal) {
-                    // Используем Flowbite API для закрытия модального окна
-                    if (window.Flowbite && window.Flowbite.getInstance) {
+                    // Используем сохраненный экземпляр или Flowbite API
+                    if (window.verificationModalInstance) {
+                        window.verificationModalInstance.hide();
+                    } else if (window.Flowbite && window.Flowbite.getInstance) {
                         const modalInstance = window.Flowbite.getInstance('modal', 'verification-modal');
                         if (modalInstance) {
                             modalInstance.hide();
