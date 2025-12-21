@@ -1306,33 +1306,46 @@
             
             // Проверка флага при возврате на страницу
             async function checkPendingVerificationSuccess() {
+                console.log('Проверка верификации при возврате...');
+                
                 // Проверяем флаг успешной верификации
                 const pending = localStorage.getItem('pendingVerificationSuccess');
                 if (pending === 'true') {
+                    console.log('Найден флаг успешной верификации');
                     localStorage.removeItem('pendingVerificationSuccess');
                     showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
                     return;
                 }
                 
-                // Проверяем, нужно ли проверить статус заказа
-                // Используем pendingVerificationCheck или currentVerificationOrderId
-                let pendingOrderId = localStorage.getItem('pendingVerificationCheck');
-                if (!pendingOrderId) {
-                    pendingOrderId = localStorage.getItem('currentVerificationOrderId');
-                }
+                // Проверяем, идет ли процесс верификации
+                const verificationInProgress = localStorage.getItem('verificationInProgress');
+                const currentOrderId = localStorage.getItem('currentVerificationOrderId');
                 
-                if (pendingOrderId) {
+                console.log('Состояние верификации:', {
+                    inProgress: verificationInProgress,
+                    orderId: currentOrderId
+                });
+                
+                if (verificationInProgress === 'true' && currentOrderId) {
                     try {
-                        const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${pendingOrderId}`, {
+                        console.log('Проверяю статус заказа:', currentOrderId);
+                        const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${currentOrderId}`, {
                             headers: {
                                 'Accept': 'application/json',
                             },
                         });
                         const statusData = await checkResponse.json();
                         
+                        console.log('Статус верификации:', statusData);
+                        
                         if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
+                            // Очищаем флаги
                             localStorage.removeItem('pendingVerificationCheck');
                             localStorage.removeItem('currentVerificationOrderId');
+                            localStorage.removeItem('verificationInProgress');
+                            localStorage.removeItem('verificationStartedAt');
+                            
+                            console.log('Верификация успешна, показываю уведомление');
                             
                             // Показываем только уведомление, не вызываем handleVerificationSuccess
                             // чтобы не очищать корзину повторно, если она уже очищена
@@ -1413,21 +1426,33 @@
                             // Сохраняем токен для проверки статуса
                             window.verificationToken = data.verification_token;
                             
-                            // Сохраняем order_id в localStorage для проверки при возврате
+                            // Сохраняем данные в localStorage ДО открытия Telegram
                             if (window.pendingOrderId) {
                                 localStorage.setItem('currentVerificationOrderId', window.pendingOrderId);
+                                localStorage.setItem('verificationInProgress', 'true');
+                                // Сохраняем timestamp для проверки
+                                localStorage.setItem('verificationStartedAt', Date.now().toString());
+                                console.log('Сохранено в localStorage:', {
+                                    orderId: window.pendingOrderId,
+                                    token: data.verification_token
+                                });
                             }
                             
                             // Открываем Telegram бота
                             const botUrl = data.bot_url;
                             
-                            // Определяем, является ли устройство мобильным
-                            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                            // Определяем тип устройства
+                            const userAgent = navigator.userAgent;
+                            const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+                            const isAndroid = /Android/i.test(userAgent);
+                            const isMobile = isIOS || isAndroid;
+                            const isMac = /Macintosh|Mac OS X/i.test(userAgent);
                             
                             // Пробуем открыть Telegram бота
                             try {
                                 if (isMobile) {
-                                    // Для мобильных устройств пробуем сначала tg:// протокол
+                                    // Для мобильных устройств используем прямое перенаправление на tg://
+                                    // Это единственный способ открыть Telegram приложение
                                     const botName = botUrl.match(/t\.me\/([^?]+)/)?.[1];
                                     const token = botUrl.match(/start=([^&]+)/)?.[1];
                                     
@@ -1437,26 +1462,33 @@
                                             ? `tg://resolve?domain=${botName}&start=${token}`
                                             : `tg://resolve?domain=${botName}`;
                                         
-                                        // Пробуем открыть через tg:// протокол
+                                        // Для мобильных используем window.location.href для открытия приложения
+                                        // Страница останется в фоне, polling продолжит работать
                                         window.location.href = tgUrl;
                                         
-                                        // Если через 2 секунды ничего не произошло, открываем через https://
-                                        setTimeout(() => {
-                                            window.location.href = botUrl;
-                                        }, 2000);
+                                        // Fallback для iOS: если tg:// не сработал, открываем https через 1 секунду
+                                        if (isIOS) {
+                                            setTimeout(() => {
+                                                // Проверяем, переключились ли мы на Telegram
+                                                // Если нет - открываем web версию
+                                                if (document.hasFocus()) {
+                                                    window.open(botUrl, '_blank');
+                                                }
+                                            }, 1000);
+                                        }
                                     } else {
-                                        // Если не удалось извлечь имя бота, используем обычную ссылку
-                                        window.location.href = botUrl;
+                                        // Если не удалось извлечь имя бота, открываем https:// ссылку в новой вкладке
+                                        window.open(botUrl, '_blank');
                                     }
                                 } else {
-                                    // Для десктопов открываем в новой вкладке
+                                    // Для десктопов (включая Mac) открываем в новой вкладке
                                     const newWindow = window.open(botUrl, '_blank');
                                     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
                                         // Если popup заблокирован, показываем сообщение с возможностью скопировать ссылку
                                         const userConfirmed = confirm('Пожалуйста, разрешите открытие всплывающих окон для этого сайта.\n\nИли нажмите OK, чтобы скопировать ссылку в буфер обмена.');
                                         if (userConfirmed) {
                                             navigator.clipboard.writeText(botUrl).then(() => {
-                                                alert('Ссылка скопирована в буфер обмена. Вставьте её в адресную строку браузера.');
+                                                showNotification('Ссылка скопирована в буфер обмена. Вставьте её в адресную строку браузера.', 'success');
                                             }).catch(() => {
                                                 prompt('Скопируйте эту ссылку:', botUrl);
                                             });
@@ -1465,41 +1497,69 @@
                                 }
                             } catch (error) {
                                 console.error('Ошибка при открытии Telegram:', error);
-                                // В случае ошибки просто открываем обычную ссылку
-                                window.location.href = botUrl;
+                                // В случае ошибки пробуем открыть в новой вкладке
+                                if (!isMobile) {
+                                    window.open(botUrl, '_blank');
+                                } else {
+                                    // На мобильных пробуем прямое перенаправление
+                                    window.location.href = botUrl;
+                                }
                             }
                             
                             // Показываем индикатор ожидания
                             waitingDiv.classList.remove('hidden');
                             
                             // Начинаем проверку статуса верификации (polling) — без ввода кода
-                            const pollIntervalMs = 2000;
-                            const maxPollMs = 120000; // Увеличено до 2 минут
+                            const pollIntervalMs = 3000;
+                            const maxPollMs = 300000; // 5 минут максимум
                             const startedAt = Date.now();
                             let pollStopped = false;
                             
                             const poll = async () => {
                                 // Проверяем, не остановлен ли polling
-                                if (pollStopped) return;
+                                if (pollStopped) {
+                                    console.log('Polling остановлен');
+                                    return;
+                                }
                                 
-                                // Проверяем видимость страницы - не проверяем статус если страница скрыта
-                                // (пользователь может быть в Telegram)
+                                // Проверяем видимость страницы
                                 const isPageVisible = !document.hidden;
+                                const orderId = window.pendingOrderId || localStorage.getItem('currentVerificationOrderId');
+                                
+                                if (!orderId) {
+                                    console.log('Нет order_id для проверки');
+                                    pollStopped = true;
+                                    return;
+                                }
                                 
                                 try {
-                                    const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${window.pendingOrderId}`, {
+                                    console.log('Проверяю статус верификации для заказа:', orderId);
+                                    const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${orderId}`, {
                                         headers: {
                                             'Accept': 'application/json',
                                         },
                                     });
                                     const statusData = await checkResponse.json();
                                     
+                                    console.log('Результат проверки:', statusData);
+                                    
                                     // Если верификация успешна
                                     if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
                                         pollStopped = true;
+                                        console.log('Верификация успешна!');
+                                        
+                                        // Сохраняем флаг для показа при возврате
+                                        if (!isPageVisible) {
+                                            localStorage.setItem('pendingVerificationSuccess', 'true');
+                                        }
                                         
                                         // Показываем успех только если страница видна, иначе сохраним флаг
                                         handleVerificationSuccess();
+                                        
+                                        // Останавливаем ожидание
+                                        waitingDiv.classList.add('hidden');
+                                        telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                                        
                                         return;
                                     }
                                 } catch (error) {
@@ -1507,8 +1567,10 @@
                                 }
 
                                 // Продолжаем polling, если не превышено время
-                                if (Date.now() - startedAt < maxPollMs && !pollStopped) {
+                                const elapsed = Date.now() - startedAt;
+                                if (elapsed < maxPollMs && !pollStopped) {
                                     // Если страница скрыта, проверяем реже (раз в 5 секунд)
+                                    // Если видна - проверяем каждые 3 секунды
                                     const nextInterval = isPageVisible ? pollIntervalMs : 5000;
                                     setTimeout(poll, nextInterval);
                                 } else {
@@ -1516,9 +1578,9 @@
                                     waitingDiv.classList.add('hidden');
                                     telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
                                     
-                                    // Если время истекло, проверяем еще раз при возврате на страницу
-                                    if (Date.now() - startedAt >= maxPollMs) {
-                                        localStorage.setItem('pendingVerificationCheck', window.pendingOrderId);
+                                    // Сохраняем флаг для проверки при возврате
+                                    if (orderId) {
+                                        localStorage.setItem('pendingVerificationCheck', orderId);
                                     }
                                 }
                             };
@@ -1528,27 +1590,41 @@
                             
                             // Дополнительная проверка при возврате на страницу
                             const handleVisibilityChange = async () => {
-                                if (!document.hidden && !pollStopped && window.pendingOrderId) {
-                                    // Проверяем статус сразу при возврате
-                                    try {
-                                        const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${window.pendingOrderId}`, {
-                                            headers: {
-                                                'Accept': 'application/json',
-                                            },
-                                        });
-                                        const statusData = await checkResponse.json();
+                                if (!document.hidden && !pollStopped) {
+                                    const orderId = window.pendingOrderId || localStorage.getItem('currentVerificationOrderId');
+                                    if (orderId) {
+                                        console.log('Возврат на страницу, проверяю статус немедленно');
                                         
-                                        if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
-                                            pollStopped = true;
-                                            handleVerificationSuccess();
-                                            document.removeEventListener('visibilitychange', handleVisibilityChange);
-                                            window.removeEventListener('focus', handleVisibilityChange);
+                                        // На мобильных устройствах polling мог остановиться при переключении
+                                        // Запускаем немедленную проверку и возобновляем polling если нужно
+                                        try {
+                                            const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${orderId}`, {
+                                                headers: {
+                                                    'Accept': 'application/json',
+                                                },
+                                            });
+                                            const statusData = await checkResponse.json();
+                                            
+                                            if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
+                                                pollStopped = true;
+                                                handleVerificationSuccess();
+                                            } else if (!pollStopped && Date.now() - startedAt < maxPollMs) {
+                                                // Если верификация еще не завершена и время не истекло, возобновляем polling
+                                                console.log('Верификация еще не завершена, возобновляю polling');
+                                                poll();
+                                            }
+                                        } catch (error) {
+                                            console.error('Ошибка проверки статуса при возврате:', error);
                                         }
-                                    } catch (error) {
-                                        console.error('Ошибка проверки статуса при возврате:', error);
                                     }
+                                    
+                                    // Также вызываем общую проверку
+                                    checkPendingVerificationSuccess();
                                 }
                             };
+                            
+                            // Сохраняем обработчик для возможности его удаления позже
+                            window.verificationVisibilityHandler = handleVisibilityChange;
                             
                             document.addEventListener('visibilitychange', handleVisibilityChange);
                             window.addEventListener('focus', handleVisibilityChange);
@@ -1639,8 +1715,11 @@
                             window.pendingOrderId = null;
                             window.pendingOrderPhone = null;
                             
-                            // Очищаем сохраненный order_id
-                            localStorage.removeItem('currentVerificationOrderId');
+                                // Очищаем сохраненные данные верификации
+                                localStorage.removeItem('currentVerificationOrderId');
+                                localStorage.removeItem('verificationInProgress');
+                                localStorage.removeItem('verificationStartedAt');
+                                localStorage.removeItem('pendingVerificationCheck');
                         } else {
                             errorDiv.textContent = data.message || 'Неверный код. Попробуйте еще раз.';
                             errorDiv.classList.remove('hidden');
