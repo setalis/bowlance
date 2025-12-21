@@ -1275,6 +1275,9 @@
             }
 
             function handleVerificationSuccess() {
+                // Проверяем, видна ли страница пользователю
+                const isPageVisible = !document.hidden;
+                
                 // Очищаем корзину
                 cart = [];
                 saveCart();
@@ -1284,8 +1287,14 @@
                 window.closeVerificationModal();
                 window.closeCartDrawer();
 
-                // Показываем красивое уведомление об успехе
-                showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
+                // Если страница видна - показываем уведомление сразу
+                // Если нет - сохраняем флаг и покажем при возврате
+                if (isPageVisible) {
+                    showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
+                } else {
+                    // Сохраняем флаг в localStorage для показа при возврате
+                    localStorage.setItem('pendingVerificationSuccess', 'true');
+                }
 
                 // Очищаем данные заказа
                 if (typeof checkoutForm !== 'undefined' && checkoutForm) {
@@ -1294,6 +1303,70 @@
                 window.pendingOrderId = null;
                 window.pendingOrderPhone = null;
             }
+            
+            // Проверка флага при возврате на страницу
+            async function checkPendingVerificationSuccess() {
+                // Проверяем флаг успешной верификации
+                const pending = localStorage.getItem('pendingVerificationSuccess');
+                if (pending === 'true') {
+                    localStorage.removeItem('pendingVerificationSuccess');
+                    showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
+                    return;
+                }
+                
+                // Проверяем, нужно ли проверить статус заказа
+                // Используем pendingVerificationCheck или currentVerificationOrderId
+                let pendingOrderId = localStorage.getItem('pendingVerificationCheck');
+                if (!pendingOrderId) {
+                    pendingOrderId = localStorage.getItem('currentVerificationOrderId');
+                }
+                
+                if (pendingOrderId) {
+                    try {
+                        const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${pendingOrderId}`, {
+                            headers: {
+                                'Accept': 'application/json',
+                            },
+                        });
+                        const statusData = await checkResponse.json();
+                        
+                        if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
+                            localStorage.removeItem('pendingVerificationCheck');
+                            localStorage.removeItem('currentVerificationOrderId');
+                            
+                            // Показываем только уведомление, не вызываем handleVerificationSuccess
+                            // чтобы не очищать корзину повторно, если она уже очищена
+                            showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
+                            
+                            // Закрываем модальные окна, если они открыты
+                            window.closeVerificationModal();
+                            window.closeCartDrawer();
+                        }
+                    } catch (error) {
+                        console.error('Ошибка проверки статуса при возврате:', error);
+                    }
+                }
+            }
+            
+            // Проверяем при загрузке страницы (если DOMContentLoaded уже произошел, выполняем сразу)
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', checkPendingVerificationSuccess);
+            } else {
+                // DOM уже загружен, выполняем сразу
+                setTimeout(checkPendingVerificationSuccess, 500);
+            }
+            
+            // Проверяем при возврате на вкладку (Page Visibility API)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    setTimeout(checkPendingVerificationSuccess, 300); // Небольшая задержка для стабильности
+                }
+            });
+            
+            // Проверяем при фокусе на окно
+            window.addEventListener('focus', function() {
+                setTimeout(checkPendingVerificationSuccess, 300);
+            });
 
             // Обработчик начала верификации через Telegram
             const telegramBotLink = document.getElementById('telegram-bot-link');
@@ -1339,6 +1412,11 @@
                         if (response.ok && data.success) {
                             // Сохраняем токен для проверки статуса
                             window.verificationToken = data.verification_token;
+                            
+                            // Сохраняем order_id в localStorage для проверки при возврате
+                            if (window.pendingOrderId) {
+                                localStorage.setItem('currentVerificationOrderId', window.pendingOrderId);
+                            }
                             
                             // Открываем Telegram бота
                             const botUrl = data.bot_url;
@@ -1396,9 +1474,18 @@
                             
                             // Начинаем проверку статуса верификации (polling) — без ввода кода
                             const pollIntervalMs = 2000;
-                            const maxPollMs = 60000;
+                            const maxPollMs = 120000; // Увеличено до 2 минут
                             const startedAt = Date.now();
+                            let pollStopped = false;
+                            
                             const poll = async () => {
+                                // Проверяем, не остановлен ли polling
+                                if (pollStopped) return;
+                                
+                                // Проверяем видимость страницы - не проверяем статус если страница скрыта
+                                // (пользователь может быть в Telegram)
+                                const isPageVisible = !document.hidden;
+                                
                                 try {
                                     const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${window.pendingOrderId}`, {
                                         headers: {
@@ -1406,12 +1493,12 @@
                                         },
                                     });
                                     const statusData = await checkResponse.json();
-                                    if (statusData.success && statusData.is_verified) {
-                                        handleVerificationSuccess();
-                                        return;
-                                    }
-                                    // Если заказ ушел из pending_verification — тоже считаем подтвержденным
-                                    if (statusData.success && statusData.order_status && statusData.order_status !== 'pending_verification') {
+                                    
+                                    // Если верификация успешна
+                                    if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
+                                        pollStopped = true;
+                                        
+                                        // Показываем успех только если страница видна, иначе сохраним флаг
                                         handleVerificationSuccess();
                                         return;
                                     }
@@ -1419,14 +1506,52 @@
                                     console.error('Ошибка проверки статуса:', error);
                                 }
 
-                                if (Date.now() - startedAt < maxPollMs) {
-                                    setTimeout(poll, pollIntervalMs);
+                                // Продолжаем polling, если не превышено время
+                                if (Date.now() - startedAt < maxPollMs && !pollStopped) {
+                                    // Если страница скрыта, проверяем реже (раз в 5 секунд)
+                                    const nextInterval = isPageVisible ? pollIntervalMs : 5000;
+                                    setTimeout(poll, nextInterval);
                                 } else {
+                                    pollStopped = true;
                                     waitingDiv.classList.add('hidden');
                                     telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                                    
+                                    // Если время истекло, проверяем еще раз при возврате на страницу
+                                    if (Date.now() - startedAt >= maxPollMs) {
+                                        localStorage.setItem('pendingVerificationCheck', window.pendingOrderId);
+                                    }
                                 }
                             };
+                            
+                            // Запускаем polling
                             poll();
+                            
+                            // Дополнительная проверка при возврате на страницу
+                            const handleVisibilityChange = async () => {
+                                if (!document.hidden && !pollStopped && window.pendingOrderId) {
+                                    // Проверяем статус сразу при возврате
+                                    try {
+                                        const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${window.pendingOrderId}`, {
+                                            headers: {
+                                                'Accept': 'application/json',
+                                            },
+                                        });
+                                        const statusData = await checkResponse.json();
+                                        
+                                        if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
+                                            pollStopped = true;
+                                            handleVerificationSuccess();
+                                            document.removeEventListener('visibilitychange', handleVisibilityChange);
+                                            window.removeEventListener('focus', handleVisibilityChange);
+                                        }
+                                    } catch (error) {
+                                        console.error('Ошибка проверки статуса при возврате:', error);
+                                    }
+                                }
+                            };
+                            
+                            document.addEventListener('visibilitychange', handleVisibilityChange);
+                            window.addEventListener('focus', handleVisibilityChange);
                             
                         } else {
                             const errorMessage = data.message || 'Ошибка при создании верификации';
@@ -1513,6 +1638,9 @@
                             // Очищаем данные заказа
                             window.pendingOrderId = null;
                             window.pendingOrderPhone = null;
+                            
+                            // Очищаем сохраненный order_id
+                            localStorage.removeItem('currentVerificationOrderId');
                         } else {
                             errorDiv.textContent = data.message || 'Неверный код. Попробуйте еще раз.';
                             errorDiv.classList.remove('hidden');
