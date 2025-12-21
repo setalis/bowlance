@@ -235,8 +235,9 @@ class PhoneVerificationService
             ]);
         }
 
-        // Отправляем подтверждение в Telegram
-        $this->telegramService->sendPhoneVerifiedSuccess($chatId, $verification->phone);
+        // Отправляем подтверждение в Telegram с кнопкой для возврата на сайт
+        $returnUrl = config('app.url');
+        $this->telegramService->sendPhoneVerifiedSuccess($chatId, $verification->phone, $returnUrl);
 
         return [
             'success' => true,

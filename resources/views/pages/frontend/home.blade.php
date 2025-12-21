@@ -5,6 +5,9 @@
 @endphp
 
 @section('content')
+    <!-- Контейнер для уведомлений -->
+    <div id="notification-container" class="fixed top-4 right-4 z-50 max-w-md w-full space-y-2" style="display: none;"></div>
+
     <!-- Hero Section -->
     <section class="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1209,6 +1212,68 @@
                 }
             };
 
+            // Функция для отображения красивого уведомления
+            function showNotification(message, type = 'success') {
+                const container = document.getElementById('notification-container');
+                if (!container) return;
+
+                const notification = document.createElement('div');
+                const bgColor = type === 'success' ? 'bg-green-50 border-green-500 dark:bg-green-500/15 dark:border-green-500/30' : 'bg-red-50 border-red-500 dark:bg-red-500/15 dark:border-red-500/30';
+                const textColor = type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                const iconColor = type === 'success' ? 'text-green-500' : 'text-red-500';
+                
+                notification.className = `rounded-xl border p-4 shadow-lg transform transition-all duration-300 ease-in-out ${bgColor}`;
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                
+                const icon = type === 'success' 
+                    ? `<svg class="fill-current ${iconColor}" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M3.70186 12.0001C3.70186 7.41711 7.41711 3.70186 12.0001 3.70186C16.5831 3.70186 20.2984 7.41711 20.2984 12.0001C20.2984 16.5831 16.5831 20.2984 12.0001 20.2984C7.41711 20.2984 3.70186 16.5831 3.70186 12.0001ZM12.0001 1.90186C6.423 1.90186 1.90186 6.423 1.90186 12.0001C1.90186 17.5772 6.423 22.0984 12.0001 22.0984C17.5772 22.0984 22.0984 17.5772 22.0984 12.0001C22.0984 6.423 17.5772 1.90186 12.0001 1.90186ZM15.6197 10.7395C15.9712 10.388 15.9712 9.81819 15.6197 9.46672C15.2683 9.11525 14.6984 9.11525 14.347 9.46672L11.1894 12.6243L9.6533 11.0883C9.30183 10.7368 8.73198 10.7368 8.38051 11.0883C8.02904 11.4397 8.02904 12.0096 8.38051 12.3611L10.553 14.5335C10.7217 14.7023 10.9507 14.7971 11.1894 14.7971C11.428 14.7971 11.657 14.7023 11.8257 14.5335L15.6197 10.7395Z" fill=""></path>
+                    </svg>`
+                    : `<svg class="fill-current ${iconColor}" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM13 8C13 7.44772 12.5523 7 12 7C11.4477 7 11 7.44772 11 8V12C11 12.5523 11.4477 13 12 13C12.5523 13 13 12.5523 13 12V8ZM12 16C11.4477 16 11 15.5523 11 15C11 14.4477 11.4477 14 12 14C12.5523 14 13 14.4477 13 15C13 15.5523 12.5523 16 12 16Z" fill=""></path>
+                    </svg>`;
+                
+                notification.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="-mt-0.5 ${iconColor}">
+                            ${icon}
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium ${textColor}">${message}</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(notification);
+                container.style.display = 'block';
+                
+                // Анимация появления
+                setTimeout(() => {
+                    notification.style.opacity = '1';
+                    notification.style.transform = 'translateX(0)';
+                }, 10);
+                
+                // Автоматическое скрытие через 5 секунд
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                        if (container.children.length === 0) {
+                            container.style.display = 'none';
+                        }
+                    }, 300);
+                }, 5000);
+            }
+
             function handleVerificationSuccess() {
                 // Очищаем корзину
                 cart = [];
@@ -1219,8 +1284,8 @@
                 window.closeVerificationModal();
                 window.closeCartDrawer();
 
-                // Сообщение об успехе
-                alert('Телефон подтвержден, заказ принят!');
+                // Показываем красивое уведомление об успехе
+                showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
 
                 // Очищаем данные заказа
                 if (typeof checkoutForm !== 'undefined' && checkoutForm) {
@@ -1439,8 +1504,8 @@
                             window.closeVerificationModal();
                             window.closeCartDrawer();
                             
-                            // Показываем сообщение об успехе
-                            alert('Заказ успешно подтвержден и принят!');
+                            // Показываем красивое уведомление об успехе
+                            showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
                             
                             // Очищаем форму
                             checkoutForm.reset();

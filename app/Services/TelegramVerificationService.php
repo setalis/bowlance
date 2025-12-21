@@ -99,7 +99,7 @@ class TelegramVerificationService
         }
     }
 
-    public function sendPhoneVerifiedSuccess(string $chatId, string $phone): bool
+    public function sendPhoneVerifiedSuccess(string $chatId, string $phone, ?string $returnUrl = null): bool
     {
         $botToken = config('verification.telegram.bot_token');
 
@@ -109,7 +109,22 @@ class TelegramVerificationService
             return false;
         }
 
-        $message = "✅ Номер подтвержден!\n\nТелефон: {$phone}\n\nСпасибо, заказ подтвержден.";
+        $appUrl = $returnUrl ?? config('app.url');
+        $message = "✅ <b>Номер успешно подтвержден!</b>\n\nТелефон: {$phone}\n\nВаш заказ подтвержден и принят в обработку. Нажмите кнопку ниже, чтобы вернуться на сайт.";
+
+        $replyMarkup = null;
+        if ($appUrl) {
+            $replyMarkup = [
+                'inline_keyboard' => [
+                    [
+                        [
+                            'text' => '🔙 Вернуться на сайт',
+                            'url' => $appUrl,
+                        ],
+                    ],
+                ],
+            ];
+        }
 
         try {
             $response = Http::timeout(10)
@@ -117,6 +132,7 @@ class TelegramVerificationService
                     'chat_id' => $chatId,
                     'text' => $message,
                     'parse_mode' => 'HTML',
+                    'reply_markup' => $replyMarkup,
                 ]);
 
             if ($response->successful()) {
