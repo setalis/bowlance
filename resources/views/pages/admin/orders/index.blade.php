@@ -48,9 +48,26 @@
                                     <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">{{ $order->customer_name }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->customer_phone }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                        <div class="space-y-1">
+                                        <div class="space-y-2">
                                             @foreach($order->items as $item)
-                                                <div>{{ $item->dish_name }} x{{ $item->quantity }}</div>
+                                                <div>
+                                                    <div class="font-medium">{{ $item->dish_name }} x{{ $item->quantity }}</div>
+                                                    @if($item->isConstructor() && $item->constructor_data)
+                                                        <div class="ml-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                            @foreach($item->constructor_data['categories'] ?? [] as $category)
+                                                                @if(isset($category['products']) && is_array($category['products']))
+                                                                    {{-- Новый формат - массив продуктов --}}
+                                                                    @foreach($category['products'] as $product)
+                                                                        <div>• {{ $category['category_name'] ?? '' }}: {{ $product['product_name'] ?? '' }} ({{ number_format($product['price'] ?? 0, 2) }} ₾)</div>
+                                                                    @endforeach
+                                                                @elseif(isset($category['product_name']))
+                                                                    {{-- Старый формат - один продукт (обратная совместимость) --}}
+                                                                    <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                    @endif
+                                                </div>
                                             @endforeach
                                         </div>
                                     </td>
@@ -147,9 +164,26 @@
                                     <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">{{ $order->customer_name }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->customer_phone }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                        <div class="space-y-1">
+                                        <div class="space-y-2">
                                             @foreach($order->items as $item)
-                                                <div>{{ $item->dish_name }} x{{ $item->quantity }}</div>
+                                                <div>
+                                                    <div class="font-medium">{{ $item->dish_name }} x{{ $item->quantity }}</div>
+                                                    @if($item->isConstructor() && $item->constructor_data)
+                                                        <div class="ml-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                            @foreach($item->constructor_data['categories'] ?? [] as $category)
+                                                                @if(isset($category['products']) && is_array($category['products']))
+                                                                    {{-- Новый формат - массив продуктов --}}
+                                                                    @foreach($category['products'] as $product)
+                                                                        <div>• {{ $category['category_name'] ?? '' }}: {{ $product['product_name'] ?? '' }} ({{ number_format($product['price'] ?? 0, 2) }} ₾)</div>
+                                                                    @endforeach
+                                                                @elseif(isset($category['product_name']))
+                                                                    {{-- Старый формат - один продукт (обратная совместимость) --}}
+                                                                    <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                    @endif
+                                                </div>
                                             @endforeach
                                         </div>
                                     </td>

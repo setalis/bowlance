@@ -117,6 +117,32 @@
                 <div id="order-items" class="space-y-4">
                     @foreach($order->items as $index => $item)
                         <div class="order-item rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                            @if($item->isConstructor() && $item->constructor_data)
+                                <div class="mb-3 rounded-lg bg-orange-50 p-3 dark:bg-orange-900/20">
+                                    <div class="font-semibold text-gray-900 dark:text-white mb-2">{{ $item->dish_name }} x{{ $item->quantity }}</div>
+                                    <div class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                                        @foreach($item->constructor_data['categories'] ?? [] as $category)
+                                            @if(isset($category['products']) && is_array($category['products']))
+                                                {{-- Новый формат - массив продуктов --}}
+                                                @foreach($category['products'] as $product)
+                                                    <div>• {{ $category['category_name'] ?? '' }}: {{ $product['product_name'] ?? '' }} ({{ number_format($product['price'] ?? 0, 2) }} ₾)</div>
+                                                @endforeach
+                                            @elseif(isset($category['product_name']))
+                                                {{-- Старый формат - один продукт (обратная совместимость) --}}
+                                                <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                    <div class="mt-2 text-sm font-semibold text-orange-600 dark:text-orange-400">
+                                        Итого: {{ number_format($item->price, 2) }} ₾
+                                    </div>
+                                </div>
+                                <input type="hidden" name="items[{{ $index }}][dish_id]" value="">
+                                <input type="hidden" name="items[{{ $index }}][dish_name]" value="{{ $item->dish_name }}">
+                                <input type="hidden" name="items[{{ $index }}][price]" value="{{ $item->price }}">
+                                <input type="hidden" name="items[{{ $index }}][quantity]" value="{{ $item->quantity }}">
+                                <input type="hidden" name="items[{{ $index }}][constructor_data]" value="{{ json_encode($item->constructor_data) }}">
+                            @else
                             <div class="grid gap-4 md:grid-cols-5">
                                 <div class="md:col-span-2">
                                     <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
@@ -173,6 +199,7 @@
                                     </button>
                                 </div>
                             </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -325,6 +352,7 @@
         });
     </script>
 @endsection
+
 
 
 

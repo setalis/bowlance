@@ -26,10 +26,13 @@ class StoreOrderRequest extends FormRequest
             'customer_phone' => ['required', 'string', 'max:255'],
             'customer_address' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.dish_id' => ['required', 'integer', 'exists:dishes,id'],
+            'items.*.dish_id' => ['nullable', 'integer', 'exists:dishes,id'],
             'items.*.dish_name' => ['required', 'string', 'max:255'],
             'items.*.price' => ['required', 'numeric', 'min:0'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.constructor_data' => ['nullable', 'array'],
+            'items.*.constructor_data.type' => ['nullable', 'string', 'in:constructor'],
+            'items.*.constructor_data.categories' => ['nullable', 'array'],
         ];
     }
 
