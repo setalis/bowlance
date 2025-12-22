@@ -33,6 +33,20 @@ class MenuHelper
                 'path' => route('admin.orders.index'),
             ],
             [
+                'icon' => 'dish',
+                'name' => 'Конструктор',
+                'subItems' => [
+                    [
+                        'name' => 'Категории',
+                        'path' => route('admin.constructor-categories.index'),
+                    ],
+                    [
+                        'name' => 'Продукты',
+                        'path' => route('admin.constructor-products.index'),
+                    ],
+                ],
+            ],
+            [
                 'icon' => 'icons',
                 'name' => 'Иконки',
                 'path' => route('admin.icons.preview'),

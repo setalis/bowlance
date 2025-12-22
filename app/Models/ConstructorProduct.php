@@ -33,6 +33,6 @@ class ConstructorProduct extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(ConstructorCategory::class);
+        return $this->belongsTo(ConstructorCategory::class, 'constructor_category_id');
     }
 }
