@@ -16,12 +16,14 @@ class OrderItem extends Model
         'dish_name',
         'price',
         'quantity',
+        'constructor_data',
     ];
 
     protected function casts(): array
     {
         return [
             'price' => 'decimal:2',
+            'constructor_data' => 'array',
         ];
     }
 
@@ -33,5 +35,10 @@ class OrderItem extends Model
     public function dish(): BelongsTo
     {
         return $this->belongsTo(Dish::class);
+    }
+
+    public function isConstructor(): bool
+    {
+        return $this->constructor_data !== null && isset($this->constructor_data['type']) && $this->constructor_data['type'] === 'constructor';
     }
 }

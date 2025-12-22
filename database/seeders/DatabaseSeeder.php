@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        
+
         $this->call([
             PermissionSeeder::class,
             RoleSeeder::class,
@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             RestaurantSeeder::class,
             DishCategorySeeder::class,
+            ConstructorSeeder::class,
         ]);
         // User::factory(10)->create();
 

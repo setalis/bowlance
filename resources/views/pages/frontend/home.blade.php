@@ -30,6 +30,137 @@
         </div>
     </section>
 
+    <!-- Constructor Section -->
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    Соберите свой боул
+                </h2>
+                <p class="text-lg text-gray-600">
+                    Выберите продукты из каждой категории и создайте идеальное блюдо
+                </p>
+            </div>
+            <div class="flex justify-center">
+                <button 
+                    type="button"
+                    data-modal-target="constructor-modal"
+                    data-modal-toggle="constructor-modal"
+                    class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-4 rounded-lg transition-colors shadow-lg text-lg"
+                >
+                    Открыть конструктор
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Constructor Modal -->
+    <div id="constructor-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="constructor-modal"></div>
+        
+        <div class="relative p-4 w-full max-w-6xl max-h-full z-50" x-data="constructorData()" x-init="loadCategories()">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <!-- Modal header -->
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                        Конструктор блюда
+                    </h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="constructor-modal">
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+                <!-- Modal body -->
+                <div class="p-4 md:p-5">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Categories and Products -->
+                        <div class="lg:col-span-2">
+                            <div class="mb-4">
+                                <ul class="flex flex-wrap gap-2 border-b border-gray-200">
+                                    <template x-for="(category, index) in categories" :key="category.id">
+                                        <li>
+                                            <button 
+                                                @click="activeTab = index"
+                                                :class="activeTab === index ? 'border-b-2 border-orange-500 text-orange-600' : 'text-gray-500 hover:text-gray-700'"
+                                                class="px-4 py-2 font-medium transition-colors"
+                                            >
+                                                <span x-text="category.name"></span>
+                                            </button>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <template x-for="(category, index) in categories" :key="category.id">
+                                    <div x-show="activeTab === index" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <template x-for="product in category.products" :key="product.id">
+                                            <button
+                                                @click="selectProduct(category.id, product)"
+                                                :class="selectedProducts[category.id]?.id === product.id ? 'ring-2 ring-orange-500 bg-orange-50' : 'bg-white hover:bg-gray-50'"
+                                                class="p-4 rounded-lg border border-gray-200 text-left transition-all"
+                                            >
+                                                <div class="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
+                                                    <template x-if="product.image">
+                                                        <img :src="product.image" :alt="product.name" class="w-full h-full object-cover">
+                                                    </template>
+                                                    <template x-if="!product.image">
+                                                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-orange-200">
+                                                            <svg class="w-12 h-12 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                                            </svg>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <h4 class="font-semibold text-gray-900 mb-1" x-text="product.name"></h4>
+                                                <p class="text-lg font-bold text-orange-600" x-text="product.price + ' ₾'"></p>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Preview and Summary -->
+                        <div class="lg:col-span-1">
+                            <div class="bg-gray-50 rounded-lg p-4 sticky top-4">
+                                <h4 class="font-semibold text-gray-900 mb-4">Ваш выбор:</h4>
+                                <div class="space-y-2 mb-4">
+                                    <template x-for="category in categories" :key="category.id">
+                                        <div class="text-sm">
+                                            <span class="font-medium text-gray-700" x-text="category.name + ':'"></span>
+                                            <span class="text-gray-600 ml-2" x-text="selectedProducts[category.id]?.name || 'Не выбрано'"></span>
+                                            <template x-if="selectedProducts[category.id]">
+                                                <span class="text-orange-600 font-semibold ml-2" x-text="'(' + selectedProducts[category.id].price + ' ₾)'"></span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div class="border-t border-gray-200 pt-4 mb-4">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-lg font-semibold text-gray-900">Итого:</span>
+                                        <span class="text-2xl font-bold text-orange-600" x-text="totalPrice.toFixed(2) + ' ₾'"></span>
+                                    </div>
+                                </div>
+                                <button
+                                    @click="addToCart()"
+                                    :disabled="!isComplete()"
+                                    :class="isComplete() ? 'bg-orange-500 hover:bg-orange-600' : 'bg-gray-300 cursor-not-allowed'"
+                                    class="w-full text-white font-semibold px-4 py-3 rounded-lg transition-colors"
+                                >
+                                    Добавить в корзину
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Categories Section -->
     @if(isset($categories) && $categories->count() > 0)
     <section class="py-20 bg-white">
@@ -585,6 +716,119 @@
 
     @push('scripts')
     <script>
+        // Функция для конструктора (Alpine.js)
+        function constructorData() {
+            return {
+                categories: [],
+                selectedProducts: {},
+                activeTab: 0,
+                totalPrice: 0,
+                
+                async loadCategories() {
+                    try {
+                        const response = await fetch('{{ route("api.constructor.categories") }}');
+                        const data = await response.json();
+                        this.categories = data.categories;
+                        this.calculateTotal();
+                    } catch (error) {
+                        console.error('Ошибка загрузки категорий:', error);
+                    }
+                },
+                
+                selectProduct(categoryId, product) {
+                    this.selectedProducts[categoryId] = {
+                        id: product.id,
+                        name: product.name,
+                        price: parseFloat(product.price),
+                        categoryId: categoryId,
+                    };
+                    this.calculateTotal();
+                },
+                
+                calculateTotal() {
+                    this.totalPrice = Object.values(this.selectedProducts).reduce((sum, product) => {
+                        return sum + product.price;
+                    }, 0);
+                },
+                
+                isComplete() {
+                    return this.categories.length > 0 && 
+                           this.categories.every(cat => this.selectedProducts[cat.id]);
+                },
+                
+                addToCart() {
+                    if (!this.isComplete()) {
+                        return;
+                    }
+                    
+                    // Формируем данные конструктора
+                    const constructorData = {
+                        type: 'constructor',
+                        categories: {},
+                        total_price: this.totalPrice,
+                    };
+                    
+                    this.categories.forEach(category => {
+                        const product = this.selectedProducts[category.id];
+                        if (product) {
+                            constructorData.categories[category.id] = {
+                                category_name: category.name,
+                                product_id: product.id,
+                                product_name: product.name,
+                                price: product.price,
+                            };
+                        }
+                    });
+                    
+                    // Создаем уникальный ID для конструктора (на основе выбранных продуктов)
+                    const constructorId = 'constructor_' + Object.values(this.selectedProducts)
+                        .map(p => p.id)
+                        .sort()
+                        .join('_');
+                    
+                    // Добавляем в корзину
+                    const cartItem = {
+                        id: constructorId,
+                        name: 'Боул (конструктор)',
+                        price: this.totalPrice,
+                        image: '',
+                        quantity: 1,
+                        isConstructor: true,
+                        constructorData: constructorData,
+                    };
+                    
+                    // Проверяем, есть ли уже такой конструктор в корзине
+                    const existingItem = cart.find(item => 
+                        item.isConstructor && 
+                        JSON.stringify(item.constructorData) === JSON.stringify(constructorData)
+                    );
+                    
+                    if (existingItem) {
+                        existingItem.quantity += 1;
+                    } else {
+                        cart.push(cartItem);
+                    }
+                    
+                    saveCart();
+                    window.openCartDrawer();
+                    
+                    // Закрываем модальное окно конструктора
+                    const modal = document.getElementById('constructor-modal');
+                    if (modal) {
+                        const closeBtn = modal.querySelector('[data-modal-hide="constructor-modal"]');
+                        if (closeBtn) {
+                            closeBtn.click();
+                        }
+                    }
+                    
+                    // Сбрасываем выбор
+                    this.selectedProducts = {};
+                    this.activeTab = 0;
+                    this.totalPrice = 0;
+                }
+            };
+        }
+        
         // Управление корзиной
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
@@ -611,19 +855,19 @@
             window.openCartDrawer();
         }
 
-        function updateQuantity(dishId, change) {
-            const item = cart.find(item => item.id === dishId);
+        function updateQuantity(itemId, change) {
+            const item = cart.find(item => item.id === itemId);
             if (item) {
                 item.quantity += change;
                 if (item.quantity <= 0) {
-                    cart = cart.filter(item => item.id !== dishId);
+                    cart = cart.filter(item => item.id !== itemId);
                 }
                 saveCart();
             }
         }
 
-        function removeFromCart(dishId) {
-            cart = cart.filter(item => item.id !== dishId);
+        function removeFromCart(itemId) {
+            cart = cart.filter(item => item.id !== itemId);
             saveCart();
         }
 
@@ -767,7 +1011,22 @@
                     clearCartButton.classList.remove('hidden');
                 }
 
-                cartItems.innerHTML = cart.map(item => `
+                cartItems.innerHTML = cart.map(item => {
+                    let itemDetails = '';
+                    
+                    // Если это конструктор, показываем состав
+                    if (item.isConstructor && item.constructorData && item.constructorData.categories) {
+                        const categories = Object.values(item.constructorData.categories);
+                        itemDetails = `
+                            <div class="mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                                ${categories.map(cat => `
+                                    <div>• ${cat.category_name}: ${cat.product_name} (${cat.price.toFixed(2)} ₾)</div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                    
+                    return `
                     <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         ${item.image ? 
                             `<img src="${item.image}" alt="${item.name}" class="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg flex-shrink-0">` :
@@ -779,12 +1038,13 @@
                         }
                         <div class="flex-1 min-w-0">
                             <h6 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-2">${item.name}</h6>
-                            <p class="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3">${item.price.toFixed(2)} ₾ за шт.</p>
+                            ${itemDetails}
+                            <p class="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3 mt-2">${item.price.toFixed(2)} ₾ за шт.</p>
                             <div class="flex items-center gap-3">
                                 <button 
                                     type="button" 
                                     class="decrease-quantity w-10 h-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-lg text-gray-700 dark:text-gray-300"
-                                    data-dish-id="${item.id}"
+                                    data-item-id="${item.id}"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
@@ -794,7 +1054,7 @@
                                 <button 
                                     type="button" 
                                     class="increase-quantity w-10 h-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-lg text-gray-700 dark:text-gray-300"
-                                    data-dish-id="${item.id}"
+                                    data-item-id="${item.id}"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -807,32 +1067,33 @@
                             <button 
                                 type="button" 
                                 class="remove-from-cart text-red-600 hover:text-red-700 text-sm font-medium"
-                                data-dish-id="${item.id}"
+                                data-item-id="${item.id}"
                             >
                                 Удалить
                             </button>
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
 
                 cartTotal.textContent = `${getCartTotal().toFixed(2)} ₾`;
 
                 // Добавляем обработчики событий
                 document.querySelectorAll('.increase-quantity').forEach(btn => {
                     btn.addEventListener('click', function() {
-                        updateQuantity(parseInt(this.getAttribute('data-dish-id')), 1);
+                        updateQuantity(this.getAttribute('data-item-id'), 1);
                     });
                 });
 
                 document.querySelectorAll('.decrease-quantity').forEach(btn => {
                     btn.addEventListener('click', function() {
-                        updateQuantity(parseInt(this.getAttribute('data-dish-id')), -1);
+                        updateQuantity(this.getAttribute('data-item-id'), -1);
                     });
                 });
 
                 document.querySelectorAll('.remove-from-cart').forEach(btn => {
                     btn.addEventListener('click', function() {
-                        removeFromCart(parseInt(this.getAttribute('data-dish-id')));
+                        removeFromCart(this.getAttribute('data-item-id'));
                     });
                 });
             }
@@ -968,6 +1229,27 @@
                         }
                     }
                     
+                    // Инициализация constructor-modal
+                    const constructorModal = document.getElementById('constructor-modal');
+                    if (constructorModal && !window.constructorModalInstance) {
+                        try {
+                            window.constructorModalInstance = new window.Flowbite.Modal(constructorModal, {
+                                placement: 'center',
+                                backdrop: 'dynamic',
+                                backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+                                closable: true,
+                                onHide: () => {
+                                    const focusedElement = constructorModal.querySelector(':focus');
+                                    if (focusedElement) {
+                                        focusedElement.blur();
+                                    }
+                                },
+                            });
+                        } catch (e) {
+                            console.log('Constructor modal already initialized or error:', e);
+                        }
+                    }
+                    
                     // Инициализация verification-modal
                     const verificationModal = document.getElementById('verification-modal');
                     if (verificationModal && !window.verificationModalInstance) {
@@ -1050,12 +1332,23 @@
                             customer_name: customerName,
                             customer_phone: customerPhone,
                             customer_address: customerAddress || null,
-                            items: cart.map(item => ({
-                                dish_id: item.id,
-                                dish_name: item.name,
-                                price: item.price,
-                                quantity: item.quantity,
-                            })),
+                            items: cart.map(item => {
+                                const orderItem = {
+                                    dish_name: item.name,
+                                    price: item.price,
+                                    quantity: item.quantity,
+                                };
+                                
+                                // Если это конструктор, добавляем constructor_data и не добавляем dish_id
+                                if (item.isConstructor && item.constructorData) {
+                                    orderItem.constructor_data = item.constructorData;
+                                    orderItem.dish_id = null;
+                                } else {
+                                    orderItem.dish_id = item.id;
+                                }
+                                
+                                return orderItem;
+                            }),
                         };
 
                         const response = await fetch('{{ route("api.orders.store") }}', {

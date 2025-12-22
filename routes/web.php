@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\IconPreviewController;
 use App\Http\Controllers\PhoneVerificationController;
+use App\Models\ConstructorCategory;
 use App\Models\DishCategory;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -45,6 +46,32 @@ Route::get('/api/categories/{category}/dishes', function (DishCategory $category
     ]);
 })->name('api.categories.dishes');
 
+Route::get('/api/constructor/categories', function () {
+    $categories = ConstructorCategory::with('products')
+        ->orderBy('sort_order')
+        ->orderBy('name')
+        ->get();
+
+    return response()->json([
+        'categories' => $categories->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'sort_order' => $category->sort_order,
+                'products' => $category->products->map(function ($product) {
+                    return [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'price' => $product->price,
+                        'image' => $product->image ? Storage::url($product->image) : null,
+                        'sort_order' => $product->sort_order,
+                    ];
+                }),
+            ];
+        }),
+    ]);
+})->name('api.constructor.categories');
+
 Route::post('/api/orders', [OrderController::class, 'store'])->name('api.orders.store');
 
 Route::post('/api/phone/verification/start', [PhoneVerificationController::class, 'start'])->name('api.phone.verification.start');
@@ -61,7 +88,6 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Route::resource('restaurants', RestaurantController::class);
     Route::get('/icons', [IconPreviewController::class, 'index'])->name('icons.preview');
 });
-
 
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';
