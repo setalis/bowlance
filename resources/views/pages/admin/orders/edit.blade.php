@@ -122,7 +122,15 @@
                                     <div class="font-semibold text-gray-900 dark:text-white mb-2">{{ $item->dish_name }} x{{ $item->quantity }}</div>
                                     <div class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
                                         @foreach($item->constructor_data['categories'] ?? [] as $category)
-                                            <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                            @if(isset($category['products']) && is_array($category['products']))
+                                                {{-- Новый формат - массив продуктов --}}
+                                                @foreach($category['products'] as $product)
+                                                    <div>• {{ $category['category_name'] ?? '' }}: {{ $product['product_name'] ?? '' }} ({{ number_format($product['price'] ?? 0, 2) }} ₾)</div>
+                                                @endforeach
+                                            @elseif(isset($category['product_name']))
+                                                {{-- Старый формат - один продукт (обратная совместимость) --}}
+                                                <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                            @endif
                                         @endforeach
                                     </div>
                                     <div class="mt-2 text-sm font-semibold text-orange-600 dark:text-orange-400">

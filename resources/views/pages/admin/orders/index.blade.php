@@ -55,7 +55,15 @@
                                                     @if($item->isConstructor() && $item->constructor_data)
                                                         <div class="ml-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                             @foreach($item->constructor_data['categories'] ?? [] as $category)
-                                                                <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                                                @if(isset($category['products']) && is_array($category['products']))
+                                                                    {{-- Новый формат - массив продуктов --}}
+                                                                    @foreach($category['products'] as $product)
+                                                                        <div>• {{ $category['category_name'] ?? '' }}: {{ $product['product_name'] ?? '' }} ({{ number_format($product['price'] ?? 0, 2) }} ₾)</div>
+                                                                    @endforeach
+                                                                @elseif(isset($category['product_name']))
+                                                                    {{-- Старый формат - один продукт (обратная совместимость) --}}
+                                                                    <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                                                @endif
                                                             @endforeach
                                                         </div>
                                                     @endif
@@ -163,7 +171,15 @@
                                                     @if($item->isConstructor() && $item->constructor_data)
                                                         <div class="ml-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                             @foreach($item->constructor_data['categories'] ?? [] as $category)
-                                                                <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                                                @if(isset($category['products']) && is_array($category['products']))
+                                                                    {{-- Новый формат - массив продуктов --}}
+                                                                    @foreach($category['products'] as $product)
+                                                                        <div>• {{ $category['category_name'] ?? '' }}: {{ $product['product_name'] ?? '' }} ({{ number_format($product['price'] ?? 0, 2) }} ₾)</div>
+                                                                    @endforeach
+                                                                @elseif(isset($category['product_name']))
+                                                                    {{-- Старый формат - один продукт (обратная совместимость) --}}
+                                                                    <div>• {{ $category['category_name'] ?? '' }}: {{ $category['product_name'] ?? '' }} ({{ number_format($category['price'] ?? 0, 2) }} ₾)</div>
+                                                                @endif
                                                             @endforeach
                                                         </div>
                                                     @endif

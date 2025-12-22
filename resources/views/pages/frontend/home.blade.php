@@ -38,7 +38,7 @@
                     Соберите свой боул
                 </h2>
                 <p class="text-lg text-gray-600">
-                    Выберите продукты из каждой категории и создайте идеальное блюдо
+                    Выберите один или несколько продуктов из каждой категории и создайте идеальное блюдо
                 </p>
             </div>
             <div class="flex justify-center">
@@ -99,10 +99,19 @@
                                     <div x-show="activeTab === index" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         <template x-for="product in category.products" :key="product.id">
                                             <button
-                                                @click="selectProduct(category.id, product)"
-                                                :class="selectedProducts[category.id]?.id === product.id ? 'ring-2 ring-orange-500 bg-orange-50' : 'bg-white hover:bg-gray-50'"
-                                                class="p-4 rounded-lg border border-gray-200 text-left transition-all"
+                                                @click="toggleProduct(category.id, product)"
+                                                :class="isProductSelected(category.id, product.id) ? 'ring-2 ring-orange-500 bg-orange-50' : 'bg-white hover:bg-gray-50'"
+                                                class="p-4 rounded-lg border border-gray-200 text-left transition-all relative"
                                             >
+                                                <div class="absolute top-2 right-2">
+                                                    <template x-if="isProductSelected(category.id, product.id)">
+                                                        <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                                                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                            </svg>
+                                                        </div>
+                                                    </template>
+                                                </div>
                                                 <div class="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
                                                     <template x-if="product.image">
                                                         <img :src="product.image" :alt="product.name" class="w-full h-full object-cover">
@@ -128,13 +137,22 @@
                         <div class="lg:col-span-1">
                             <div class="bg-gray-50 rounded-lg p-4 sticky top-4">
                                 <h4 class="font-semibold text-gray-900 mb-4">Ваш выбор:</h4>
-                                <div class="space-y-2 mb-4">
+                                <div class="space-y-2 mb-4 max-h-64 overflow-y-auto">
                                     <template x-for="category in categories" :key="category.id">
                                         <div class="text-sm">
                                             <span class="font-medium text-gray-700" x-text="category.name + ':'"></span>
-                                            <span class="text-gray-600 ml-2" x-text="selectedProducts[category.id]?.name || 'Не выбрано'"></span>
-                                            <template x-if="selectedProducts[category.id]">
-                                                <span class="text-orange-600 font-semibold ml-2" x-text="'(' + selectedProducts[category.id].price + ' ₾)'"></span>
+                                            <template x-if="!selectedProducts[category.id] || selectedProducts[category.id].length === 0">
+                                                <span class="text-gray-500 ml-2">Не выбрано</span>
+                                            </template>
+                                            <template x-if="selectedProducts[category.id] && selectedProducts[category.id].length > 0">
+                                                <div class="ml-2 space-y-1">
+                                                    <template x-for="product in selectedProducts[category.id]" :key="product.id">
+                                                        <div class="flex items-center justify-between">
+                                                            <span class="text-gray-600" x-text="product.name"></span>
+                                                            <span class="text-orange-600 font-semibold ml-2" x-text="product.price + ' ₾'"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
                                             </template>
                                         </div>
                                     </template>
@@ -735,25 +753,50 @@
                     }
                 },
                 
-                selectProduct(categoryId, product) {
-                    this.selectedProducts[categoryId] = {
-                        id: product.id,
-                        name: product.name,
-                        price: parseFloat(product.price),
-                        categoryId: categoryId,
-                    };
+                toggleProduct(categoryId, product) {
+                    if (!this.selectedProducts[categoryId]) {
+                        this.selectedProducts[categoryId] = [];
+                    }
+                    
+                    const index = this.selectedProducts[categoryId].findIndex(p => p.id === product.id);
+                    if (index > -1) {
+                        // Удаляем продукт, если он уже выбран
+                        this.selectedProducts[categoryId].splice(index, 1);
+                    } else {
+                        // Добавляем продукт
+                        this.selectedProducts[categoryId].push({
+                            id: product.id,
+                            name: product.name,
+                            price: parseFloat(product.price),
+                            categoryId: categoryId,
+                        });
+                    }
+                    
+                    // Удаляем пустые массивы
+                    if (this.selectedProducts[categoryId].length === 0) {
+                        delete this.selectedProducts[categoryId];
+                    }
+                    
                     this.calculateTotal();
                 },
                 
+                isProductSelected(categoryId, productId) {
+                    return this.selectedProducts[categoryId] && 
+                           this.selectedProducts[categoryId].some(p => p.id === productId);
+                },
+                
                 calculateTotal() {
-                    this.totalPrice = Object.values(this.selectedProducts).reduce((sum, product) => {
-                        return sum + product.price;
+                    this.totalPrice = Object.values(this.selectedProducts).reduce((sum, products) => {
+                        return sum + products.reduce((catSum, product) => catSum + product.price, 0);
                     }, 0);
                 },
                 
                 isComplete() {
                     return this.categories.length > 0 && 
-                           this.categories.every(cat => this.selectedProducts[cat.id]);
+                           this.categories.every(cat => 
+                               this.selectedProducts[cat.id] && 
+                               this.selectedProducts[cat.id].length > 0
+                           );
                 },
                 
                 addToCart() {
@@ -769,22 +812,25 @@
                     };
                     
                     this.categories.forEach(category => {
-                        const product = this.selectedProducts[category.id];
-                        if (product) {
+                        const products = this.selectedProducts[category.id];
+                        if (products && products.length > 0) {
                             constructorData.categories[category.id] = {
                                 category_name: category.name,
-                                product_id: product.id,
-                                product_name: product.name,
-                                price: product.price,
+                                products: products.map(p => ({
+                                    product_id: p.id,
+                                    product_name: p.name,
+                                    price: p.price,
+                                })),
                             };
                         }
                     });
                     
                     // Создаем уникальный ID для конструктора (на основе выбранных продуктов)
-                    const constructorId = 'constructor_' + Object.values(this.selectedProducts)
+                    const allProductIds = Object.values(this.selectedProducts)
+                        .flat()
                         .map(p => p.id)
-                        .sort()
-                        .join('_');
+                        .sort();
+                    const constructorId = 'constructor_' + allProductIds.join('_');
                     
                     // Добавляем в корзину
                     const cartItem = {
@@ -1019,9 +1065,19 @@
                         const categories = Object.values(item.constructorData.categories);
                         itemDetails = `
                             <div class="mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                                ${categories.map(cat => `
-                                    <div>• ${cat.category_name}: ${cat.product_name} (${cat.price.toFixed(2)} ₾)</div>
-                                `).join('')}
+                                ${categories.map(cat => {
+                                    // Поддержка как старого формата (один продукт), так и нового (массив продуктов)
+                                    if (cat.products && Array.isArray(cat.products)) {
+                                        // Новый формат - массив продуктов
+                                        return cat.products.map(product => `
+                                            <div>• ${cat.category_name}: ${product.product_name} (${product.price.toFixed(2)} ₾)</div>
+                                        `).join('');
+                                    } else if (cat.product_name) {
+                                        // Старый формат - один продукт (для обратной совместимости)
+                                        return `<div>• ${cat.category_name}: ${cat.product_name} (${cat.price.toFixed(2)} ₾)</div>`;
+                                    }
+                                    return '';
+                                }).join('')}
                             </div>
                         `;
                     }
