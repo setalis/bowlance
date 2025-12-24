@@ -31,7 +31,7 @@
     </section>
 
     <!-- Constructor Section -->
-    <section class="py-20 bg-gray-50">
+    <section class="py-20 bg-gray-50" x-data="constructorData()" x-init="loadCategories()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -41,32 +41,137 @@
                     Выберите один или несколько продуктов из каждой категории и создайте идеальное блюдо
                 </p>
             </div>
-            <div class="flex justify-center">
-                <button 
-                    type="button"
-                    data-modal-target="constructor-modal"
-                    data-modal-toggle="constructor-modal"
-                    class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-4 rounded-lg transition-colors shadow-lg text-lg"
-                >
-                    Открыть конструктор
-                </button>
+
+            <!-- Categories Rows -->
+            <div class="space-y-6 mb-8">
+                <template x-for="category in categories" :key="category.id">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <!-- Заголовок категории -->
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900" x-text="category.name"></h3>
+                            <button 
+                                @click="openCategoryModal(category)"
+                                class="text-orange-600 hover:text-orange-700 text-sm font-medium flex items-center gap-1"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Выбрать
+                            </button>
+                        </div>
+                        
+                        <!-- Список выбранных продуктов -->
+                        <template x-if="hasSelectedProducts(category.id)">
+                            <div class="space-y-3">
+                                <template x-for="product in getSelectedProducts(category.id)" :key="product.id">
+                                    <div class="flex gap-4 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <!-- Изображение -->
+                                        <div class="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden">
+                                            <template x-if="product.image">
+                                                <img :src="product.image" :alt="product.name" class="w-full h-full object-cover">
+                                            </template>
+                                            <template x-if="!product.image">
+                                                <div class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        
+                                        <!-- Информация о продукте -->
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-start justify-between gap-2">
+                                                <div class="flex-1 min-w-0">
+                                                    <h4 class="font-semibold text-gray-900 mb-1" x-text="product.name"></h4>
+                                                    <p class="text-sm text-gray-600 mb-2 line-clamp-2" x-text="product.description || ''"></p>
+                                                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                                                        <span x-text="product.weight_volume || ''"></span>
+                                                        <div class="flex items-center gap-2">
+                                                            <span>К: <span class="font-semibold text-gray-900" x-text="product.calories || 0"></span></span>
+                                                            <span>Б: <span class="font-semibold text-gray-900" x-text="(product.proteins || 0).toFixed(1) + ' г'"></span></span>
+                                                            <span>Ж: <span class="font-semibold text-gray-900" x-text="(product.fats || 0).toFixed(1) + ' г'"></span></span>
+                                                            <span>У: <span class="font-semibold text-gray-900" x-text="(product.carbohydrates || 0).toFixed(1) + ' г'"></span></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-3">
+                                                    <span class="text-lg font-bold text-orange-600 whitespace-nowrap" x-text="product.price.toFixed(2) + ' ₾'"></span>
+                                                    <button 
+                                                        @click="removeProduct(category.id, product.id)"
+                                                        class="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                                                        title="Удалить"
+                                                    >
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        
+                        <!-- Если продуктов не выбрано -->
+                        <template x-if="!hasSelectedProducts(category.id)">
+                            <button 
+                                @click="openCategoryModal(category)"
+                                class="w-full p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors text-center group"
+                            >
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-16 h-16 bg-white/30 backdrop-blur-sm backdrop-saturate-150 border border-white/20 rounded-lg flex items-center justify-center mb-3 group-hover:bg-orange-100/30 transition-colors">
+                                        <svg class="w-8 h-8 text-gray-400 group-hover:text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="text-gray-500 group-hover:text-orange-600 font-medium">Выберите продукты из категории</span>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Итого и кнопка -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="text-center md:text-left">
+                        <div class="text-sm text-gray-600 mb-1">Стоимость всего блюда</div>
+                        <div class="text-3xl font-bold text-orange-600" x-text="totalPrice.toFixed(2) + ' ₾'"></div>
+                    </div>
+                    <button
+                        @click="addToCart()"
+                        :disabled="!isComplete()"
+                        :class="isComplete() ? 'bg-orange-500 hover:bg-orange-600' : 'bg-gray-300 cursor-not-allowed'"
+                        class="w-full md:w-auto text-white font-semibold px-8 py-3 rounded-lg transition-colors"
+                    >
+                        Добавить в заказ
+                    </button>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Constructor Modal -->
-    <div id="constructor-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <!-- Modal для выбора продуктов из категории -->
+    <div id="category-products-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
         <!-- Backdrop -->
-        <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" data-modal-hide="constructor-modal"></div>
+        <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" @click="document.getElementById('category-products-modal').classList.add('hidden'); document.body.style.overflow = '';"></div>
         
-        <div class="relative p-4 w-full max-w-6xl max-h-full z-50" x-data="constructorData()" x-init="loadCategories()">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+        <div class="relative p-4 w-full max-w-4xl h-full md:h-auto z-50">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800" 
+                 x-data="{ 
+                     selectedProductIds: [],
+                     init() {
+                         this.selectedProductIds = $store.constructor.selectedProductIds || [];
+                     }
+                 }"
+                 x-effect="selectedProductIds = $store.constructor.selectedProductIds || []">
                 <!-- Modal header -->
                 <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-                        Конструктор блюда
-                    </h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="constructor-modal">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white" x-text="$store.constructor.currentCategory?.name || 'Выберите продукты'"></h3>
+                    <button type="button" @click="document.getElementById('category-products-modal').classList.add('hidden'); document.body.style.overflow = '';" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
                         <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
                         </svg>
@@ -75,105 +180,59 @@
                 </div>
                 <!-- Modal body -->
                 <div class="p-4 md:p-5">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Categories and Products -->
-                        <div class="lg:col-span-2">
-                            <div class="mb-4">
-                                <ul class="flex flex-wrap gap-2 border-b border-gray-200">
-                                    <template x-for="(category, index) in categories" :key="category.id">
-                                        <li>
-                                            <button 
-                                                @click="activeTab = index"
-                                                :class="activeTab === index ? 'border-b-2 border-orange-500 text-orange-600' : 'text-gray-500 hover:text-gray-700'"
-                                                class="px-4 py-2 font-medium transition-colors"
-                                            >
-                                                <span x-text="category.name"></span>
-                                            </button>
-                                        </li>
-                                    </template>
-                                </ul>
-                            </div>
-                            
-                            <div class="space-y-4">
-                                <template x-for="(category, index) in categories" :key="category.id">
-                                    <div x-show="activeTab === index" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                        <template x-for="product in category.products" :key="product.id">
-                                            <button
-                                                @click="toggleProduct(category.id, product)"
-                                                :class="isProductSelected(category.id, product.id) ? 'ring-2 ring-orange-500 bg-orange-50' : 'bg-white hover:bg-gray-50'"
-                                                class="p-4 rounded-lg border border-gray-200 text-left transition-all relative"
-                                            >
-                                                <div class="absolute top-2 right-2">
-                                                    <template x-if="isProductSelected(category.id, product.id)">
-                                                        <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                                                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                                            </svg>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                                <div class="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
-                                                    <template x-if="product.image">
-                                                        <img :src="product.image" :alt="product.name" class="w-full h-full object-cover">
-                                                    </template>
-                                                    <template x-if="!product.image">
-                                                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-orange-200">
-                                                            <svg class="w-12 h-12 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                                            </svg>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                                <h4 class="font-semibold text-gray-900 mb-1" x-text="product.name"></h4>
-                                                <p class="text-lg font-bold text-orange-600" x-text="product.price + ' ₾'"></p>
-                                            </button>
-                                        </template>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                        
-                        <!-- Preview and Summary -->
-                        <div class="lg:col-span-1">
-                            <div class="bg-gray-50 rounded-lg p-4 sticky top-4">
-                                <h4 class="font-semibold text-gray-900 mb-4">Ваш выбор:</h4>
-                                <div class="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                                    <template x-for="category in categories" :key="category.id">
-                                        <div class="text-sm">
-                                            <span class="font-medium text-gray-700" x-text="category.name + ':'"></span>
-                                            <template x-if="!selectedProducts[category.id] || selectedProducts[category.id].length === 0">
-                                                <span class="text-gray-500 ml-2">Не выбрано</span>
-                                            </template>
-                                            <template x-if="selectedProducts[category.id] && selectedProducts[category.id].length > 0">
-                                                <div class="ml-2 space-y-1">
-                                                    <template x-for="product in selectedProducts[category.id]" :key="product.id">
-                                                        <div class="flex items-center justify-between">
-                                                            <span class="text-gray-600" x-text="product.name"></span>
-                                                            <span class="text-orange-600 font-semibold ml-2" x-text="product.price + ' ₾'"></span>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </template>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <template x-for="product in ($store.constructor.currentCategory?.products || [])" :key="product.id">
+                            <button
+                                @click="selectedProductIds.includes(product.id) ? selectedProductIds = selectedProductIds.filter(id => id !== product.id) : selectedProductIds.push(product.id)"
+                                :class="selectedProductIds.includes(product.id) ? 'ring-2 ring-orange-500 bg-orange-50' : 'bg-white hover:bg-gray-50'"
+                                class="p-4 rounded-lg border border-gray-200 text-left transition-all relative"
+                            >
+                                <div class="absolute top-2 right-2">
+                                    <template x-if="selectedProductIds.includes(product.id)">
+                                        <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
                                         </div>
                                     </template>
                                 </div>
-                                <div class="border-t border-gray-200 pt-4 mb-4">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-lg font-semibold text-gray-900">Итого:</span>
-                                        <span class="text-2xl font-bold text-orange-600" x-text="totalPrice.toFixed(2) + ' ₾'"></span>
-                                    </div>
+                                <div class="aspect-square bg-gray-100 rounded-lg mb-3 overflow-hidden">
+                                    <template x-if="product.image">
+                                        <img :src="product.image" :alt="product.name" class="w-full h-full object-cover">
+                                    </template>
+                                    <template x-if="!product.image">
+                                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-orange-200">
+                                            <svg class="w-12 h-12 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                            </svg>
+                                        </div>
+                                    </template>
                                 </div>
-                                <button
-                                    @click="addToCart()"
-                                    :disabled="!isComplete()"
-                                    :class="isComplete() ? 'bg-orange-500 hover:bg-orange-600' : 'bg-gray-300 cursor-not-allowed'"
-                                    class="w-full text-white font-semibold px-4 py-3 rounded-lg transition-colors"
-                                >
-                                    Добавить в корзину
-                                </button>
-                            </div>
-                        </div>
+                                <h4 class="font-semibold text-gray-900 mb-1" x-text="product.name"></h4>
+                                <p class="text-sm text-gray-600 mb-1 line-clamp-2" x-text="product.description || ''"></p>
+                                <p class="text-lg font-bold text-orange-600" x-text="product.price + ' ₾'"></p>
+                            </button>
+                        </template>
                     </div>
+                </div>
+                <!-- Modal footer -->
+                <div class="flex items-center gap-3 p-4 md:p-5 border-t border-gray-200 dark:border-gray-600">
+                    <button 
+                        type="button" 
+                        @click="document.getElementById('category-products-modal').classList.add('hidden'); document.body.style.overflow = '';"
+                        class="flex-1 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                    >
+                        Закрыть
+                    </button>
+                    <button 
+                        type="button"
+                        @click="if (window.constructorInstance && $store.constructor.currentCategory) { $store.constructor.selectedProductIds = selectedProductIds; window.constructorInstance.applySelectedProducts($store.constructor.currentCategory.id); document.getElementById('category-products-modal').classList.add('hidden'); document.body.style.overflow = ''; }"
+                        :disabled="selectedProductIds.length === 0"
+                        :class="selectedProductIds.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600'"
+                        class="flex-1 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors focus:ring-4 focus:outline-none focus:ring-orange-300 dark:focus:ring-orange-800"
+                    >
+                        Применить (<span x-text="selectedProductIds.length"></span>)
+                    </button>
                 </div>
             </div>
         </div>
@@ -734,12 +793,20 @@
 
     @push('scripts')
     <script>
+        // Alpine.js store для конструктора
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('constructor', {
+                currentCategory: null,
+                currentCategoryProduct: null,
+                selectedProductIds: [],
+            });
+        });
+
         // Функция для конструктора (Alpine.js)
         function constructorData() {
             return {
                 categories: [],
-                selectedProducts: {},
-                activeTab: 0,
+                selectedProducts: {}, // Массив продуктов на категорию: { categoryId: [product1, product2, ...] }
                 totalPrice: 0,
                 
                 async loadCategories() {
@@ -753,41 +820,114 @@
                     }
                 },
                 
+                getSelectedProducts(categoryId) {
+                    return this.selectedProducts[categoryId] || [];
+                },
+                
+                hasSelectedProducts(categoryId) {
+                    return this.getSelectedProducts(categoryId).length > 0;
+                },
+                
+                isProductSelected(categoryId, productId) {
+                    return this.getSelectedProducts(categoryId).some(p => p.id === productId);
+                },
+                
+                removeProduct(categoryId, productId) {
+                    if (!this.selectedProducts[categoryId]) {
+                        return;
+                    }
+                    this.selectedProducts[categoryId] = this.selectedProducts[categoryId].filter(p => p.id !== productId);
+                    if (this.selectedProducts[categoryId].length === 0) {
+                        delete this.selectedProducts[categoryId];
+                    }
+                    this.calculateTotal();
+                },
+                
+                openCategoryModal(category) {
+                    Alpine.store('constructor').currentCategory = category;
+                    Alpine.store('constructor').selectedProductIds = (this.selectedProducts[category.id] || []).map(p => p.id);
+                    window.constructorInstance = this;
+                    
+                    // Открываем модальное окно напрямую
+                    const modal = document.getElementById('category-products-modal');
+                    if (modal) {
+                        modal.classList.remove('hidden');
+                        document.body.style.overflow = 'hidden';
+                    }
+                },
+                
                 toggleProduct(categoryId, product) {
                     if (!this.selectedProducts[categoryId]) {
                         this.selectedProducts[categoryId] = [];
                     }
                     
                     const index = this.selectedProducts[categoryId].findIndex(p => p.id === product.id);
+                    
                     if (index > -1) {
                         // Удаляем продукт, если он уже выбран
                         this.selectedProducts[categoryId].splice(index, 1);
+                        if (this.selectedProducts[categoryId].length === 0) {
+                            delete this.selectedProducts[categoryId];
+                        }
                     } else {
                         // Добавляем продукт
                         this.selectedProducts[categoryId].push({
                             id: product.id,
                             name: product.name,
                             price: parseFloat(product.price),
+                            image: product.image || null,
+                            description: product.description || null,
+                            weight_volume: product.weight_volume || null,
+                            calories: product.calories || 0,
+                            proteins: product.proteins || 0,
+                            fats: product.fats || 0,
+                            carbohydrates: product.carbohydrates || 0,
+                            fiber: product.fiber || 0,
                             categoryId: categoryId,
                         });
                     }
-                    
-                    // Удаляем пустые массивы
-                    if (this.selectedProducts[categoryId].length === 0) {
-                        delete this.selectedProducts[categoryId];
-                    }
-                    
                     this.calculateTotal();
                 },
                 
-                isProductSelected(categoryId, productId) {
-                    return this.selectedProducts[categoryId] && 
-                           this.selectedProducts[categoryId].some(p => p.id === productId);
+                applySelectedProducts(categoryId) {
+                    // Обновляем выбранные продукты из store (используется после закрытия модального окна)
+                    const selectedIds = Alpine.store('constructor').selectedProductIds || [];
+                    const category = this.categories.find(c => c.id === categoryId);
+                    if (!category) return;
+                    
+                    this.selectedProducts[categoryId] = [];
+                    selectedIds.forEach(productId => {
+                        const product = category.products.find(p => p.id === productId);
+                        if (product) {
+                            this.selectedProducts[categoryId].push({
+                                id: product.id,
+                                name: product.name,
+                                price: parseFloat(product.price),
+                                image: product.image || null,
+                                description: product.description || null,
+                                weight_volume: product.weight_volume || null,
+                                calories: product.calories || 0,
+                                proteins: product.proteins || 0,
+                                fats: product.fats || 0,
+                                carbohydrates: product.carbohydrates || 0,
+                                fiber: product.fiber || 0,
+                                categoryId: categoryId,
+                            });
+                        }
+                    });
+                    
+                    if (this.selectedProducts[categoryId].length === 0) {
+                        delete this.selectedProducts[categoryId];
+                    }
+                    this.calculateTotal();
                 },
                 
                 calculateTotal() {
                     this.totalPrice = Object.values(this.selectedProducts).reduce((sum, products) => {
-                        return sum + products.reduce((catSum, product) => catSum + product.price, 0);
+                        const categoryTotal = products.reduce((catSum, product) => {
+                            return catSum + (product.price || 0);
+                        }, 0);
+                        return sum + categoryTotal;
                     }, 0);
                 },
                 
@@ -816,10 +956,16 @@
                         if (products && products.length > 0) {
                             constructorData.categories[category.id] = {
                                 category_name: category.name,
-                                products: products.map(p => ({
-                                    product_id: p.id,
-                                    product_name: p.name,
-                                    price: p.price,
+                                products: products.map(product => ({
+                                    product_id: product.id,
+                                    product_name: product.name,
+                                    price: product.price,
+                                    calories: product.calories,
+                                    proteins: product.proteins,
+                                    fats: product.fats,
+                                    carbohydrates: product.carbohydrates,
+                                    fiber: product.fiber,
+                                    weight_volume: product.weight_volume,
                                 })),
                             };
                         }
@@ -1285,24 +1431,24 @@
                         }
                     }
                     
-                    // Инициализация constructor-modal
-                    const constructorModal = document.getElementById('constructor-modal');
-                    if (constructorModal && !window.constructorModalInstance) {
+                    // Инициализация category-products-modal
+                    const categoryProductsModal = document.getElementById('category-products-modal');
+                    if (categoryProductsModal && !window.categoryProductsModalInstance) {
                         try {
-                            window.constructorModalInstance = new window.Flowbite.Modal(constructorModal, {
+                            window.categoryProductsModalInstance = new window.Flowbite.Modal(categoryProductsModal, {
                                 placement: 'center',
                                 backdrop: 'dynamic',
                                 backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
                                 closable: true,
                                 onHide: () => {
-                                    const focusedElement = constructorModal.querySelector(':focus');
+                                    const focusedElement = categoryProductsModal.querySelector(':focus');
                                     if (focusedElement) {
                                         focusedElement.blur();
                                     }
                                 },
                             });
                         } catch (e) {
-                            console.log('Constructor modal already initialized or error:', e);
+                            console.log('Category products modal already initialized or error:', e);
                         }
                     }
                     

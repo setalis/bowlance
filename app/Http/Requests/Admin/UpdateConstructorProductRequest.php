@@ -27,6 +27,13 @@ class UpdateConstructorProductRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:0'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'description' => ['nullable', 'string'],
+            'weight_volume' => ['nullable', 'string', 'max:50'],
+            'calories' => ['nullable', 'integer', 'min:0'],
+            'proteins' => ['nullable', 'numeric', 'min:0'],
+            'fats' => ['nullable', 'numeric', 'min:0'],
+            'carbohydrates' => ['nullable', 'numeric', 'min:0'],
+            'fiber' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 

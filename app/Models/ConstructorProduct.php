@@ -22,12 +22,23 @@ class ConstructorProduct extends Model
         'price',
         'image',
         'sort_order',
+        'description',
+        'weight_volume',
+        'calories',
+        'proteins',
+        'fats',
+        'carbohydrates',
+        'fiber',
     ];
 
     protected function casts(): array
     {
         return [
             'price' => 'decimal:2',
+            'proteins' => 'decimal:2',
+            'fats' => 'decimal:2',
+            'carbohydrates' => 'decimal:2',
+            'fiber' => 'decimal:2',
         ];
     }
 

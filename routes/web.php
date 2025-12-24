@@ -65,6 +65,13 @@ Route::get('/api/constructor/categories', function () {
                         'price' => $product->price,
                         'image' => $product->image ? Storage::url($product->image) : null,
                         'sort_order' => $product->sort_order,
+                        'description' => $product->description,
+                        'weight_volume' => $product->weight_volume,
+                        'calories' => $product->calories,
+                        'proteins' => $product->proteins,
+                        'fats' => $product->fats,
+                        'carbohydrates' => $product->carbohydrates,
+                        'fiber' => $product->fiber,
                     ];
                 }),
             ];
