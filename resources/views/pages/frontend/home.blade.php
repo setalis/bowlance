@@ -86,12 +86,22 @@
                                                     <h4 class="font-semibold text-gray-900 mb-1" x-text="product.name"></h4>
                                                     <p class="text-sm text-gray-600 mb-2 line-clamp-2" x-text="product.description || ''"></p>
                                                     <div class="flex items-center gap-4 text-xs text-gray-500">
-                                                        <span x-text="product.weight_volume || ''"></span>
+                                                        <template x-if="product.weight_volume">
+                                                            <span x-text="product.weight_volume"></span>
+                                                        </template>
                                                         <div class="flex items-center gap-2">
-                                                            <span>К: <span class="font-semibold text-gray-900" x-text="product.calories || 0"></span></span>
-                                                            <span>Б: <span class="font-semibold text-gray-900" x-text="(product.proteins || 0).toFixed(1) + ' г'"></span></span>
-                                                            <span>Ж: <span class="font-semibold text-gray-900" x-text="(product.fats || 0).toFixed(1) + ' г'"></span></span>
-                                                            <span>У: <span class="font-semibold text-gray-900" x-text="(product.carbohydrates || 0).toFixed(1) + ' г'"></span></span>
+                                                            <template x-if="product.calories !== null && product.calories !== undefined">
+                                                                <span>К: <span class="font-semibold text-gray-900" x-text="Math.round(product.calories)"></span></span>
+                                                            </template>
+                                                            <template x-if="product.proteins !== null && product.proteins !== undefined">
+                                                                <span>Б: <span class="font-semibold text-gray-900" x-text="parseFloat(product.proteins || 0).toFixed(1) + ' г'"></span></span>
+                                                            </template>
+                                                            <template x-if="product.fats !== null && product.fats !== undefined">
+                                                                <span>Ж: <span class="font-semibold text-gray-900" x-text="parseFloat(product.fats || 0).toFixed(1) + ' г'"></span></span>
+                                                            </template>
+                                                            <template x-if="product.carbohydrates !== null && product.carbohydrates !== undefined">
+                                                                <span>У: <span class="font-semibold text-gray-900" x-text="parseFloat(product.carbohydrates || 0).toFixed(1) + ' г'"></span></span>
+                                                            </template>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -136,10 +146,30 @@
 
             <!-- Итого и кнопка -->
             <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div class="text-center md:text-left">
-                        <div class="text-sm text-gray-600 mb-1">Стоимость всего блюда</div>
-                        <div class="text-3xl font-bold text-orange-600" x-text="totalPrice.toFixed(2) + ' ₾'"></div>
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="flex-1 text-center md:text-left">
+                        <div class="text-sm text-gray-600 mb-2">Стоимость всего блюда</div>
+                        <div class="text-3xl font-bold text-orange-600 mb-4" x-text="totalPrice.toFixed(2) + ' ₾'"></div>
+                        
+                        <!-- КБЖУ -->
+                        <div class="flex flex-wrap items-center gap-4 text-sm">
+                            <div class="flex items-center gap-1">
+                                <span class="text-gray-600">К:</span>
+                                <span class="font-semibold text-gray-900" x-text="Math.round(totalCalories)"></span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="text-gray-600">Б:</span>
+                                <span class="font-semibold text-gray-900" x-text="totalProteins.toFixed(1) + ' г'"></span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="text-gray-600">Ж:</span>
+                                <span class="font-semibold text-gray-900" x-text="totalFats.toFixed(1) + ' г'"></span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="text-gray-600">У:</span>
+                                <span class="font-semibold text-gray-900" x-text="totalCarbohydrates.toFixed(1) + ' г'"></span>
+                            </div>
+                        </div>
                     </div>
                     <button
                         @click="addToCart()"
@@ -210,6 +240,23 @@
                                 </div>
                                 <h4 class="font-semibold text-gray-900 mb-1" x-text="product.name"></h4>
                                 <p class="text-sm text-gray-600 mb-1 line-clamp-2" x-text="product.description || ''"></p>
+                                <div class="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                                    <template x-if="product.weight_volume">
+                                        <span x-text="product.weight_volume"></span>
+                                    </template>
+                                    <template x-if="product.calories">
+                                        <span>К: <span class="font-semibold text-gray-900" x-text="product.calories"></span></span>
+                                    </template>
+                                    <template x-if="product.proteins !== null && product.proteins !== undefined">
+                                        <span>Б: <span class="font-semibold text-gray-900" x-text="parseFloat(product.proteins || 0).toFixed(1) + ' г'"></span></span>
+                                    </template>
+                                    <template x-if="product.fats !== null && product.fats !== undefined">
+                                        <span>Ж: <span class="font-semibold text-gray-900" x-text="parseFloat(product.fats || 0).toFixed(1) + ' г'"></span></span>
+                                    </template>
+                                    <template x-if="product.carbohydrates !== null && product.carbohydrates !== undefined">
+                                        <span>У: <span class="font-semibold text-gray-900" x-text="parseFloat(product.carbohydrates || 0).toFixed(1) + ' г'"></span></span>
+                                    </template>
+                                </div>
                                 <p class="text-lg font-bold text-orange-600" x-text="product.price + ' ₾'"></p>
                             </button>
                         </template>
@@ -808,6 +855,10 @@
                 categories: [],
                 selectedProducts: {}, // Массив продуктов на категорию: { categoryId: [product1, product2, ...] }
                 totalPrice: 0,
+                totalCalories: 0,
+                totalProteins: 0,
+                totalFats: 0,
+                totalCarbohydrates: 0,
                 
                 async loadCategories() {
                     try {
@@ -878,10 +929,10 @@
                             image: product.image || null,
                             description: product.description || null,
                             weight_volume: product.weight_volume || null,
-                            calories: product.calories || 0,
-                            proteins: product.proteins || 0,
-                            fats: product.fats || 0,
-                            carbohydrates: product.carbohydrates || 0,
+                            calories: product.calories !== null && product.calories !== undefined ? product.calories : 0,
+                            proteins: product.proteins !== null && product.proteins !== undefined ? parseFloat(product.proteins) : 0,
+                            fats: product.fats !== null && product.fats !== undefined ? parseFloat(product.fats) : 0,
+                            carbohydrates: product.carbohydrates !== null && product.carbohydrates !== undefined ? parseFloat(product.carbohydrates) : 0,
                             fiber: product.fiber || 0,
                             categoryId: categoryId,
                         });
@@ -906,10 +957,10 @@
                                 image: product.image || null,
                                 description: product.description || null,
                                 weight_volume: product.weight_volume || null,
-                                calories: product.calories || 0,
-                                proteins: product.proteins || 0,
-                                fats: product.fats || 0,
-                                carbohydrates: product.carbohydrates || 0,
+                                calories: product.calories !== null && product.calories !== undefined ? product.calories : 0,
+                                proteins: product.proteins !== null && product.proteins !== undefined ? parseFloat(product.proteins) : 0,
+                                fats: product.fats !== null && product.fats !== undefined ? parseFloat(product.fats) : 0,
+                                carbohydrates: product.carbohydrates !== null && product.carbohydrates !== undefined ? parseFloat(product.carbohydrates) : 0,
                                 fiber: product.fiber || 0,
                                 categoryId: categoryId,
                             });
@@ -923,12 +974,27 @@
                 },
                 
                 calculateTotal() {
-                    this.totalPrice = Object.values(this.selectedProducts).reduce((sum, products) => {
-                        const categoryTotal = products.reduce((catSum, product) => {
-                            return catSum + (product.price || 0);
-                        }, 0);
-                        return sum + categoryTotal;
-                    }, 0);
+                    let price = 0;
+                    let calories = 0;
+                    let proteins = 0;
+                    let fats = 0;
+                    let carbohydrates = 0;
+                    
+                    Object.values(this.selectedProducts).forEach(products => {
+                        products.forEach(product => {
+                            price += product.price || 0;
+                            calories += product.calories || 0;
+                            proteins += product.proteins || 0;
+                            fats += product.fats || 0;
+                            carbohydrates += product.carbohydrates || 0;
+                        });
+                    });
+                    
+                    this.totalPrice = price;
+                    this.totalCalories = calories;
+                    this.totalProteins = proteins;
+                    this.totalFats = fats;
+                    this.totalCarbohydrates = carbohydrates;
                 },
                 
                 hasAnyProducts() {
@@ -1009,6 +1075,10 @@
                     // Сбрасываем выбор
                     this.selectedProducts = {};
                     this.totalPrice = 0;
+                    this.totalCalories = 0;
+                    this.totalProteins = 0;
+                    this.totalFats = 0;
+                    this.totalCarbohydrates = 0;
                 }
             };
         }
