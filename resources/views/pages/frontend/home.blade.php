@@ -38,7 +38,7 @@
                     Соберите свой боул
                 </h2>
                 <p class="text-lg text-gray-600">
-                    Выберите один или несколько продуктов из каждой категории и создайте идеальное блюдо
+                    Выберите продукты из категорий по желанию и создайте идеальное блюдо
                 </p>
             </div>
 
@@ -143,8 +143,8 @@
                     </div>
                     <button
                         @click="addToCart()"
-                        :disabled="!isComplete()"
-                        :class="isComplete() ? 'bg-orange-500 hover:bg-orange-600' : 'bg-gray-300 cursor-not-allowed'"
+                        :disabled="!hasAnyProducts()"
+                        :class="hasAnyProducts() ? 'bg-orange-500 hover:bg-orange-600' : 'bg-gray-300 cursor-not-allowed'"
                         class="w-full md:w-auto text-white font-semibold px-8 py-3 rounded-lg transition-colors"
                     >
                         Добавить в заказ
@@ -931,16 +931,15 @@
                     }, 0);
                 },
                 
-                isComplete() {
-                    return this.categories.length > 0 && 
-                           this.categories.every(cat => 
-                               this.selectedProducts[cat.id] && 
-                               this.selectedProducts[cat.id].length > 0
-                           );
+                hasAnyProducts() {
+                    return Object.values(this.selectedProducts).some(products => 
+                        products && products.length > 0
+                    );
                 },
                 
                 addToCart() {
-                    if (!this.isComplete()) {
+                    // Проверяем, что есть хотя бы один выбранный продукт
+                    if (!this.hasAnyProducts()) {
                         return;
                     }
                     
@@ -972,11 +971,14 @@
                     });
                     
                     // Создаем уникальный ID для конструктора (на основе выбранных продуктов)
+                    // Если нет выбранных продуктов, используем timestamp для уникальности
                     const allProductIds = Object.values(this.selectedProducts)
                         .flat()
                         .map(p => p.id)
                         .sort();
-                    const constructorId = 'constructor_' + allProductIds.join('_');
+                    const constructorId = allProductIds.length > 0 
+                        ? 'constructor_' + allProductIds.join('_')
+                        : 'constructor_' + Date.now();
                     
                     // Добавляем в корзину
                     const cartItem = {
@@ -1004,18 +1006,8 @@
                     saveCart();
                     window.openCartDrawer();
                     
-                    // Закрываем модальное окно конструктора
-                    const modal = document.getElementById('constructor-modal');
-                    if (modal) {
-                        const closeBtn = modal.querySelector('[data-modal-hide="constructor-modal"]');
-                        if (closeBtn) {
-                            closeBtn.click();
-                        }
-                    }
-                    
                     // Сбрасываем выбор
                     this.selectedProducts = {};
-                    this.activeTab = 0;
                     this.totalPrice = 0;
                 }
             };
