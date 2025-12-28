@@ -99,6 +99,45 @@ class TelegramVerificationService
         }
     }
 
+    public function sendLoginCode(string $phone, string $chatId, string $code): bool
+    {
+        $botToken = config('verification.telegram.bot_token');
+
+        if (empty($botToken)) {
+            Log::error('Telegram bot token is not configured');
+
+            return false;
+        }
+
+        $message = "🔐 <b>Код для входа в личный кабинет</b>\n\nВаш код подтверждения: <b>{$code}</b>\n\nТелефон: {$phone}\n\nКод действителен в течение 10 минут.\n\nВведите этот код на сайте для входа.";
+
+        try {
+            $response = Http::timeout(10)
+                ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                    'chat_id' => $chatId,
+                    'text' => $message,
+                    'parse_mode' => 'HTML',
+                ]);
+
+            if ($response->successful()) {
+                return true;
+            }
+
+            Log::error('Failed to send Telegram login code', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Exception while sending Telegram login code', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
     public function sendPhoneVerifiedSuccess(string $chatId, string $phone, ?string $returnUrl = null): bool
     {
         $botToken = config('verification.telegram.bot_token');

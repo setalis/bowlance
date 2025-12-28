@@ -16,11 +16,27 @@
                             </p>
                         </div>
                         <div>
-                            <form method="POST" action="{{ route('login') }}">
+                            <form method="POST" action="{{ route('login') }}" x-data="{ loginType: 'email' }">
                                 @csrf
+                                <input type="hidden" name="login_type" x-model="loginType">
+                                
+                                <!-- Переключатель типа входа -->
+                                <div class="mb-5 flex gap-2 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+                                    <button type="button" @click="loginType = 'email'" 
+                                        :class="loginType === 'email' ? 'bg-white text-brand-500 shadow-sm dark:bg-gray-700' : 'text-gray-600 dark:text-gray-400'"
+                                        class="flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors">
+                                        По Email
+                                    </button>
+                                    <button type="button" @click="loginType = 'phone'"
+                                        :class="loginType === 'phone' ? 'bg-white text-brand-500 shadow-sm dark:bg-gray-700' : 'text-gray-600 dark:text-gray-400'"
+                                        class="flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors">
+                                        По телефону
+                                    </button>
+                                </div>
+
                                 <div class="space-y-5">
-                                    <!-- Email -->
-                                    <div>
+                                    <!-- Email (показывается при loginType === 'email') -->
+                                    <div x-show="loginType === 'email'">
                                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                             Email<span class="text-error-500">*</span>
                                         </label>
@@ -30,8 +46,144 @@
                                             <p class="mt-1.5 text-sm text-error-500">{{ $message }}</p>
                                         @enderror
                                     </div>
-                                    <!-- Password -->
-                                    <div>
+                                    
+                                    <!-- Телефон (показывается при loginType === 'phone') -->
+                                    <div x-show="loginType === 'phone'" x-data="{ 
+                                        phone: localStorage.getItem('login_phone') || '{{ old('phone') }}',
+                                        token: localStorage.getItem('login_token') || '',
+                                        showCodeInput: false,
+                                        code: '',
+                                        telegramChatId: null,
+                                        loading: false,
+                                        codeSent: false
+                                    }">
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Телефон<span class="text-error-500">*</span>
+                                        </label>
+                                        <input type="tel" id="phone" name="phone" x-model="phone" placeholder="+995123456789" autofocus
+                                            :disabled="showCodeInput"
+                                            class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 @error('phone') border-error-500 @enderror disabled:opacity-50" />
+                                        <input type="hidden" name="login_token" x-model="token" />
+                                        @error('phone')
+                                            <p class="mt-1.5 text-sm text-error-500">{{ $message }}</p>
+                                        @enderror
+                                        
+                                        <template x-if="token && !showCodeInput">
+                                            <p class="mt-1.5 text-xs text-green-600 dark:text-green-400">
+                                                ✓ Токен доступа найден. Вы можете войти без пароля.
+                                            </p>
+                                        </template>
+                                        
+                                        <template x-if="!token && !showCodeInput">
+                                            <div class="mt-3">
+                                                <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                                                    Введите номер телефона, который вы использовали при оформлении заказа
+                                                </p>
+                                                <button type="button" @click="
+                                                    if (!phone) {
+                                                        alert('Сначала введите номер телефона');
+                                                        return;
+                                                    }
+                                                    loading = true;
+                                                    fetch('{{ route('api.login.verification.send') }}', {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Content-Type': 'application/json',
+                                                            'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').getAttribute('content'),
+                                                            'Accept': 'application/json',
+                                                        },
+                                                        body: JSON.stringify({
+                                                            phone: phone
+                                                        }),
+                                                    })
+                                                    .then(response => response.json())
+                                                    .then(data => {
+                                                        if (data.success) {
+                                                            showCodeInput = true;
+                                                            codeSent = true;
+                                                            if (data.bot_url) {
+                                                                window.open(data.bot_url, '_blank');
+                                                            }
+                                                        } else {
+                                                            alert(data.message || 'Ошибка при отправке кода');
+                                                        }
+                                                    })
+                                                    .catch(error => {
+                                                        alert('Ошибка при отправке кода');
+                                                    })
+                                                    .finally(() => {
+                                                        loading = false;
+                                                    });
+                                                " :disabled="loading || !phone" class="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg text-sm px-4 py-2.5 transition-colors">
+                                                    <span x-show="!loading">Получить код через Telegram</span>
+                                                    <span x-show="loading">Отправка...</span>
+                                                </button>
+                                            </div>
+                                        </template>
+                                        
+                                        <!-- Поле для ввода кода -->
+                                        <template x-if="showCodeInput">
+                                            <div class="mt-3 space-y-3">
+                                                <div>
+                                                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                                        Код из Telegram<span class="text-error-500">*</span>
+                                                    </label>
+                                                    <input type="text" x-model="code" placeholder="000000" maxlength="6" 
+                                                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 text-center text-2xl tracking-widest" />
+                                                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                                        Введите 6-значный код, который вы получили в Telegram
+                                                    </p>
+                                                </div>
+                                                <button type="button" @click="
+                                                    if (!code || code.length !== 6) {
+                                                        alert('Введите 6-значный код');
+                                                        return;
+                                                    }
+                                                    loading = true;
+                                                    fetch('{{ route('api.login.verification.verify') }}', {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Content-Type': 'application/json',
+                                                            'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').getAttribute('content'),
+                                                            'Accept': 'application/json',
+                                                        },
+                                                        body: JSON.stringify({
+                                                            phone: phone,
+                                                            code: code
+                                                        }),
+                                                    })
+                                                    .then(response => response.json())
+                                                    .then(data => {
+                                                        if (data.success) {
+                                                            localStorage.setItem('login_token', data.login_token);
+                                                            localStorage.setItem('login_phone', phone);
+                                                            token = data.login_token;
+                                                            if (data.redirect_url) {
+                                                                window.location.href = data.redirect_url;
+                                                            } else {
+                                                                showCodeInput = false;
+                                                                document.querySelector('form').submit();
+                                                            }
+                                                        } else {
+                                                            alert(data.message || 'Неверный код');
+                                                        }
+                                                    })
+                                                    .catch(error => {
+                                                        alert('Ошибка при проверке кода');
+                                                    })
+                                                    .finally(() => {
+                                                        loading = false;
+                                                    });
+                                                " :disabled="loading || code.length !== 6" class="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg text-sm px-4 py-2.5 transition-colors">
+                                                    <span x-show="!loading">Войти</span>
+                                                    <span x-show="loading">Проверка...</span>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    
+                                    <!-- Password (показывается только при входе по email) -->
+                                    <div x-show="loginType === 'email'">
                                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                             Password<span class="text-error-500">*</span>
                                         </label>

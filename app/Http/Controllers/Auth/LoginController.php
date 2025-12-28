@@ -21,6 +21,54 @@ class LoginController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        // Проверяем, вход по телефону или по email
+        if ($request->has('login_type') && $request->input('login_type') === 'phone') {
+            $request->validate([
+                'phone' => ['required', 'string'],
+                'login_token' => ['nullable', 'string'],
+            ]);
+
+            $this->ensureIsNotRateLimited($request);
+
+            // Ищем пользователя по телефону
+            $user = \App\Models\User::where('phone', $request->input('phone'))->first();
+
+            if (! $user) {
+                RateLimiter::hit($this->throttleKey($request));
+
+                throw ValidationException::withMessages([
+                    'phone' => 'Пользователь с таким телефоном не найден.',
+                ]);
+            }
+
+            // Проверяем токен из localStorage
+            $providedToken = $request->input('login_token');
+            if ($providedToken && $user->login_token && hash_equals($user->login_token, $providedToken)) {
+                // Токен совпадает - авторизуем пользователя
+                Auth::login($user, $request->boolean('remember'));
+                RateLimiter::clear($this->throttleKey($request));
+                $request->session()->regenerate();
+
+                return redirect()->intended(route('account.index', absolute: false));
+            }
+
+            // Если токен не предоставлен или не совпадает
+            // Если у пользователя есть токен в базе - нужно запросить код для сохранения токена на новом устройстве
+            // Если токена нет в базе - также нужно запросить код (токен будет создан после верификации)
+            RateLimiter::hit($this->throttleKey($request));
+
+            if ($user->login_token) {
+                throw ValidationException::withMessages([
+                    'phone' => 'Токен не найден на этом устройстве. Запросите код через Telegram для сохранения токена.',
+                ]);
+            } else {
+                throw ValidationException::withMessages([
+                    'phone' => 'Токен не найден. Запросите код через Telegram.',
+                ]);
+            }
+        }
+
+        // Стандартный вход по email и паролю
         $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
@@ -40,7 +88,7 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended(route('account.index', absolute: false));
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -74,7 +122,8 @@ class LoginController extends Controller
 
     public function throttleKey(Request $request): string
     {
-        return Str::transliterate(Str::lower($request->string('email')).'|'.$request->ip());
+        $identifier = $request->input('phone') ?? $request->input('email') ?? 'unknown';
+
+        return Str::transliterate(Str::lower($identifier).'|'.$request->ip());
     }
 }
-

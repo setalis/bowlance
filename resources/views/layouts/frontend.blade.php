@@ -63,7 +63,7 @@
                     </button>
                     
                     @auth
-                        <a href="{{ route('dashboard') }}" class="text-gray-700 hover:text-orange-500 font-medium transition-colors">Личный кабинет</a>
+                        <a href="{{ route('account.index') }}" class="text-gray-700 hover:text-orange-500 font-medium transition-colors">Личный кабинет</a>
                         <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
                             <button type="submit" class="text-gray-700 hover:text-orange-500 font-medium transition-colors">Выйти</button>
@@ -107,7 +107,7 @@
                 <a href="#contact" class="block px-3 py-2 text-gray-700 hover:text-orange-500 hover:bg-gray-50 rounded-md font-medium">Контакты</a>
                 <div class="border-t border-gray-200 pt-2 mt-2">
                     @auth
-                        <a href="{{ route('dashboard') }}" class="block px-3 py-2 text-gray-700 hover:text-orange-500 hover:bg-gray-50 rounded-md font-medium">Личный кабинет</a>
+                        <a href="{{ route('account.index') }}" class="block px-3 py-2 text-gray-700 hover:text-orange-500 hover:bg-gray-50 rounded-md font-medium">Личный кабинет</a>
                         <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
                             <button type="submit" class="block w-full text-left px-3 py-2 text-gray-700 hover:text-orange-500 hover:bg-gray-50 rounded-md font-medium">Выйти</button>

@@ -183,7 +183,38 @@ class TelegramWebhookController extends Controller
                     'all_parts' => $parts,
                 ]);
 
-                if ($token && $chatId) {
+                // Проверяем, это токен для входа (начинается с "login_")
+                if ($token && str_starts_with($token, 'login_')) {
+                    $actualToken = substr($token, 6); // Убираем префикс "login_"
+                    $loginVerification = \App\Models\LoginVerification::byLoginToken($actualToken)
+                        ->whereNull('verified_at')
+                        ->where('expires_at', '>', now())
+                        ->first();
+
+                    if ($loginVerification && $chatId) {
+                        // Сохраняем chat_id и генерируем новый код
+                        $code = \App\Models\LoginVerification::generateCode();
+                        $loginVerification->update([
+                            'telegram_chat_id' => (string) $chatId,
+                            'code' => $code,
+                        ]);
+
+                        $telegramService = new \App\Services\TelegramVerificationService;
+                        $telegramService->sendLoginCode($loginVerification->phone, (string) $chatId, $code);
+
+                        $responseText = "🔐 Код для входа отправлен!\n\nВведите этот код на сайте для входа в личный кабинет.";
+                        Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                            'chat_id' => $chatId,
+                            'text' => $responseText,
+                        ]);
+                    } else {
+                        $responseText = '❌ Токен входа недействителен или истек. Запросите новый код на сайте.';
+                        Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                            'chat_id' => $chatId,
+                            'text' => $responseText,
+                        ]);
+                    }
+                } elseif ($token && $chatId) {
                     $verification = $this->verificationService->completeVerificationStart($token, (string) $chatId);
 
                     if ($verification) {

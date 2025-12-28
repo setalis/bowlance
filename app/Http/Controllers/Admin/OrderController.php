@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreOrderRequest;
 use App\Http\Requests\Admin\UpdateOrderRequest;
 use App\Models\Dish;
 use App\Models\Order;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class OrderController extends Controller
@@ -48,12 +53,76 @@ class OrderController extends Controller
     {
         $data = $request->validated();
 
+        // Автоматическая регистрация пользователя, если не авторизован
+        $user = Auth::user();
+        if (! $user) {
+            // Ищем пользователя по телефону
+            $user = User::where('phone', $data['customer_phone'])->first();
+
+            // Если пользователь не найден, создаем нового
+            if (! $user) {
+                // Генерируем email на основе телефона, если его нет
+                $email = $data['customer_phone'].'@temp.local';
+
+                // Проверяем, не существует ли уже пользователь с таким email
+                $existingUser = User::where('email', $email)->first();
+                if ($existingUser) {
+                    // Если пользователь существует, обновляем телефон и генерируем токен, если его нет
+                    $updateData = ['phone' => $data['customer_phone']];
+                    if (! $existingUser->login_token) {
+                        $updateData['login_token'] = bin2hex(random_bytes(32));
+                    }
+                    $existingUser->update($updateData);
+                    $user = $existingUser;
+                } else {
+                    // Генерируем токен для входа
+                    $loginToken = bin2hex(random_bytes(32));
+
+                    // Создаем нового пользователя
+                    $user = User::create([
+                        'name' => $data['customer_name'],
+                        'email' => $email,
+                        'phone' => $data['customer_phone'],
+                        'password' => Hash::make(uniqid('', true)), // Генерируем случайный пароль
+                        'login_token' => $loginToken,
+                    ]);
+
+                    // Назначаем роль CUSTOMER, если она существует
+                    $customerRole = Role::where('name', RoleName::CUSTOMER->value)->first();
+                    if ($customerRole && ! $user->hasRole(RoleName::CUSTOMER)) {
+                        $user->roles()->attach($customerRole);
+                    }
+                }
+            } else {
+                // Если пользователь найден, но у него нет токена - генерируем новый
+                if (! $user->login_token) {
+                    $user->update(['login_token' => bin2hex(random_bytes(32))]);
+                }
+            }
+
+            // Автоматически авторизуем пользователя
+            Auth::login($user);
+        } else {
+            // Если пользователь авторизован, обновляем его данные, если они изменились
+            $updateData = [];
+            if ($user->name !== $data['customer_name']) {
+                $updateData['name'] = $data['customer_name'];
+            }
+            if ($user->phone !== $data['customer_phone']) {
+                $updateData['phone'] = $data['customer_phone'];
+            }
+            if (! empty($updateData)) {
+                $user->update($updateData);
+            }
+        }
+
         $total = 0;
         foreach ($data['items'] as $item) {
             $total += $item['price'] * $item['quantity'];
         }
 
         $order = Order::create([
+            'user_id' => $user->id,
             'customer_name' => $data['customer_name'],
             'customer_phone' => $data['customer_phone'],
             'customer_address' => $data['customer_address'] ?? null,
@@ -79,6 +148,7 @@ class OrderController extends Controller
                 'requires_verification' => true,
                 'order_id' => $order->id,
                 'phone' => $order->customer_phone,
+                'login_token' => $user->login_token, // Возвращаем токен для сохранения в localStorage
             ]);
         }
 

@@ -1615,19 +1615,40 @@
                             }),
                         };
 
+                        // Получаем CSRF токен с проверкой
+                        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+                        if (!csrfTokenMeta || !csrfTokenMeta.getAttribute('content')) {
+                            alert('Ошибка: CSRF токен не найден. Пожалуйста, обновите страницу.');
+                            return;
+                        }
+                        
+                        const csrfToken = csrfTokenMeta.getAttribute('content');
+
                         const response = await fetch('{{ route("api.orders.store") }}', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'X-CSRF-TOKEN': csrfToken,
                                 'Accept': 'application/json',
                             },
                             body: JSON.stringify(orderData),
                         });
 
+                        // Обработка ошибки CSRF token mismatch (419)
+                        if (response.status === 419) {
+                            alert('Сессия истекла. Пожалуйста, обновите страницу и попробуйте снова.');
+                            return;
+                        }
+
                         const data = await response.json();
 
                         if (response.ok) {
+                            // Сохраняем токен входа в localStorage, если он есть
+                            if (data.login_token) {
+                                localStorage.setItem('login_token', data.login_token);
+                                localStorage.setItem('login_phone', data.phone);
+                            }
+
                             // Проверяем, требуется ли верификация
                             if (data.requires_verification) {
                                 // Сохраняем данные заказа для верификации
@@ -1956,17 +1977,43 @@
                     telegramBotLink.classList.add('opacity-50', 'pointer-events-none');
 
                     try {
+                        // Получаем CSRF токен с проверкой
+                        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+                        if (!csrfTokenMeta) {
+                            errorDiv.textContent = 'Ошибка: CSRF токен не найден. Пожалуйста, обновите страницу.';
+                            errorDiv.classList.remove('hidden');
+                            telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                            return;
+                        }
+                        
+                        const csrfToken = csrfTokenMeta.getAttribute('content');
+                        if (!csrfToken) {
+                            errorDiv.textContent = 'Ошибка: CSRF токен пуст. Пожалуйста, обновите страницу.';
+                            errorDiv.classList.remove('hidden');
+                            telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                            return;
+                        }
+
                         const response = await fetch('{{ route("api.phone.verification.start") }}', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'X-CSRF-TOKEN': csrfToken,
                                 'Accept': 'application/json',
                             },
                             body: JSON.stringify({
                                 order_id: window.pendingOrderId,
                             }),
                         });
+
+                        // Обработка ошибки CSRF token mismatch (419)
+                        if (response.status === 419) {
+                            errorDiv.textContent = 'Сессия истекла. Пожалуйста, обновите страницу и попробуйте снова.';
+                            errorDiv.classList.remove('hidden');
+                            telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                            console.error('CSRF token mismatch. Требуется обновление страницы.');
+                            return;
+                        }
 
                         let data;
                         try {
@@ -2237,11 +2284,23 @@
                     errorDiv.classList.add('hidden');
 
                     try {
+                        // Получаем CSRF токен с проверкой
+                        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+                        if (!csrfTokenMeta || !csrfTokenMeta.getAttribute('content')) {
+                            errorDiv.textContent = 'Ошибка: CSRF токен не найден. Пожалуйста, обновите страницу.';
+                            errorDiv.classList.remove('hidden');
+                            verifyCodeButton.disabled = false;
+                            verifyCodeButton.textContent = 'Подтвердить';
+                            return;
+                        }
+                        
+                        const csrfToken = csrfTokenMeta.getAttribute('content');
+
                         const response = await fetch('{{ route("api.phone.verification.verify") }}', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'X-CSRF-TOKEN': csrfToken,
                                 'Accept': 'application/json',
                             },
                             body: JSON.stringify({
@@ -2249,6 +2308,15 @@
                                 code: code,
                             }),
                         });
+
+                        // Обработка ошибки CSRF token mismatch (419)
+                        if (response.status === 419) {
+                            errorDiv.textContent = 'Сессия истекла. Пожалуйста, обновите страницу и попробуйте снова.';
+                            errorDiv.classList.remove('hidden');
+                            verifyCodeButton.disabled = false;
+                            verifyCodeButton.textContent = 'Подтвердить';
+                            return;
+                        }
 
                         const data = await response.json();
 

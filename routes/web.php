@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\IconPreviewController;
@@ -87,9 +88,16 @@ Route::post('/api/phone/verification/verify', [PhoneVerificationController::clas
 Route::get('/api/phone/verification/check-status', [PhoneVerificationController::class, 'checkStatus'])->name('api.phone.verification.check-status');
 Route::post('/api/telegram/webhook', [App\Http\Controllers\TelegramWebhookController::class, 'handle'])->name('api.telegram.webhook');
 
+Route::post('/api/login/verification/send', [App\Http\Controllers\Auth\LoginVerificationController::class, 'sendCode'])->name('api.login.verification.send');
+Route::post('/api/login/verification/verify', [App\Http\Controllers\Auth\LoginVerificationController::class, 'verifyCode'])->name('api.login.verification.verify');
+
 Route::get('/dashboard', function () {
     return view('dashboard', ['title' => 'Dashboard']);
 })->middleware(['auth'])->name('dashboard');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/account', [AccountController::class, 'index'])->name('account.index');
+});
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     // Route::resource('restaurants', RestaurantController::class);
