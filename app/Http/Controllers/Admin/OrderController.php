@@ -33,12 +33,12 @@ class OrderController extends Controller
                 ELSE 4 
             END")
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(10);
 
         $completedOrders = Order::with('items')
             ->where('status', 'completed')
             ->orderBy('completed_at', 'desc')
-            ->paginate(15);
+            ->paginate(10);
 
         return view('pages.admin.orders.index', [
             'pendingOrders' => $pendingOrders,

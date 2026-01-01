@@ -131,6 +131,12 @@
                         </tbody>
                     </table>
                 </div>
+
+                @if($pendingOrders->hasPages())
+                    <div class="mt-4">
+                        {{ $pendingOrders->links() }}
+                    </div>
+                @endif
             @else
                 <div class="text-center py-8">
                     <p class="text-gray-600 dark:text-gray-400">Нет невыполненных заказов</p>
