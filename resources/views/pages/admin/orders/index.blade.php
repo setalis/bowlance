@@ -43,7 +43,7 @@
                         </thead>
                         <tbody>
                             @foreach($pendingOrders as $order)
-                                <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 {{ $order->status === 'pending_verification' ? 'bg-orange-50 dark:bg-orange-900/10' : '' }}">
                                     <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">#{{ $order->id }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">{{ $order->customer_name }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->customer_phone }}</td>
@@ -75,12 +75,14 @@
                                     <td class="px-4 py-4">
                                         @php
                                             $statusLabels = [
+                                                'pending_verification' => 'Не подтвержден',
                                                 'new' => 'Новый',
                                                 'preparing' => 'Приготовление',
                                                 'delivering' => 'Доставка',
                                                 'completed' => 'Выполнен',
                                             ];
                                             $statusColors = [
+                                                'pending_verification' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
                                                 'new' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
                                                 'preparing' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
                                                 'delivering' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
@@ -93,8 +95,9 @@
                                             <select 
                                                 name="status" 
                                                 onchange="this.form.submit()"
-                                                class="text-sm rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                                                class="text-sm rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800 {{ $order->status === 'pending_verification' ? 'border-orange-300 bg-orange-50 dark:bg-orange-900/20' : '' }}"
                                             >
+                                                <option value="pending_verification" {{ $order->status === 'pending_verification' ? 'selected' : '' }}>Не подтвержден</option>
                                                 <option value="new" {{ $order->status === 'new' ? 'selected' : '' }}>Новый</option>
                                                 <option value="preparing" {{ $order->status === 'preparing' ? 'selected' : '' }}>Приготовление</option>
                                                 <option value="delivering" {{ $order->status === 'delivering' ? 'selected' : '' }}>Доставка</option>

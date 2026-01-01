@@ -97,6 +97,20 @@
                                             <span class="font-medium">Адрес:</span> {{ $order->customer_address }}
                                         </p>
                                     @endif
+                                    @if($order->status === 'pending_verification')
+                                        <div class="mt-3">
+                                            <button 
+                                                type="button"
+                                                onclick="openVerificationModal({{ $order->id }})"
+                                                class="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
+                                            >
+                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.2 1.656-1.053 5.684-1.482 7.533-.19.856-.562 1.141-.925 1.17-.78.055-1.371-.515-2.127-1.009-.59-.39-.925-.606-1.5-1.009-.662-.45-.232-.697.144-1.101.098-.105 1.78-1.633 1.814-1.772.008-.033.016-.156-.06-.234-.075-.078-.184-.051-.264-.03-.112.027-1.89 1.2-5.336 3.523-.505.336-.96.5-1.371.492-.46-.009-1.344-.26-2.001-.475-.807-.268-1.45-.41-1.394-.867.027-.225.405-.456 1.113-.69 4.323-1.88 7.203-3.12 8.64-3.72 4.14-1.8 5.001-2.115 5.562-2.139.12-.005.39-.027.565.16.138.148.192.348.211.488.019.14.033.457-.019.705z"/>
+                                                </svg>
+                                                Подтвердить заказ
+                                            </button>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -124,4 +138,322 @@
         </div>
     </div>
 </div>
+
+<!-- Модальное окно подтверждения заказа -->
+<div id="verification-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Подтверждение заказа</h3>
+                <button 
+                    type="button"
+                    onclick="closeVerificationModal()"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-4 space-y-4">
+                <div id="verification-step-1">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Для подтверждения заказа необходимо подтвердить номер телефона через Telegram. 
+                        Нажмите кнопку ниже, чтобы открыть Telegram бота и получить код подтверждения.
+                    </p>
+                    <div id="verification-error-1" class="hidden text-red-600 dark:text-red-400 text-sm mb-4"></div>
+                    <div class="flex flex-col gap-3">
+                        <a 
+                            id="telegram-bot-link-account"
+                            href="#"
+                            target="_blank"
+                            class="w-full inline-flex items-center justify-center gap-2 text-white bg-[#0088cc] hover:bg-[#0077b5] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors"
+                        >
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.2 1.656-1.053 5.684-1.482 7.533-.19.856-.562 1.141-.925 1.17-.78.055-1.371-.515-2.127-1.009-.59-.39-.925-.606-1.5-1.009-.662-.45-.232-.697.144-1.101.098-.105 1.78-1.633 1.814-1.772.008-.033.016-.156-.06-.234-.075-.078-.184-.051-.264-.03-.112.027-1.89 1.2-5.336 3.523-.505.336-.96.5-1.371.492-.46-.009-1.344-.26-2.001-.475-.807-.268-1.45-.41-1.394-.867.027-.225.405-.456 1.113-.69 4.323-1.88 7.203-3.12 8.64-3.72 4.14-1.8 5.001-2.115 5.562-2.139.12-.005.39-.027.565.16.138.148.192.348.211.488.019.14.033.457-.019.705z"/>
+                            </svg>
+                            Открыть Telegram бота
+                        </a>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                            После открытия бота нажмите кнопку "Начать" или отправьте команду /start
+                        </p>
+                    </div>
+                    <div id="waiting-for-code-account" class="hidden mt-4">
+                        <div class="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Ожидание кода...
+                        </div>
+                    </div>
+                </div>
+                <div id="verification-step-2-account" class="hidden">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Код подтверждения отправлен в Telegram. Введите код для подтверждения заказа.
+                    </p>
+                    <div class="mb-4">
+                        <label for="verification_code_account" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Код подтверждения <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="verification_code_account" 
+                            name="verification_code_account" 
+                            required
+                            maxlength="6"
+                            pattern="[0-9]{6}"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500 text-center tracking-widest"
+                            placeholder="000000"
+                        >
+                    </div>
+                    <div id="verification-error-2-account" class="hidden text-red-600 dark:text-red-400 text-sm mb-4"></div>
+                    <div class="flex gap-3">
+                        <button 
+                            type="button" 
+                            id="back-button-account"
+                            onclick="backToStep1()"
+                            class="flex-1 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                        >
+                            Назад
+                        </button>
+                        <button 
+                            type="button" 
+                            id="verify-code-button-account"
+                            onclick="verifyCodeAccount()"
+                            class="flex-1 text-white bg-orange-500 hover:bg-orange-600 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-orange-500 dark:hover:bg-orange-600 dark:focus:ring-orange-800"
+                        >
+                            Подтвердить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentOrderId = null;
+
+function openVerificationModal(orderId) {
+    currentOrderId = orderId;
+    document.getElementById('verification-modal').classList.remove('hidden');
+    document.getElementById('verification-step-1').classList.remove('hidden');
+    document.getElementById('verification-step-2-account').classList.add('hidden');
+    document.getElementById('verification-error-1').classList.add('hidden');
+    document.getElementById('verification-error-2-account').classList.add('hidden');
+    document.getElementById('verification_code_account').value = '';
+    document.getElementById('waiting-for-code-account').classList.add('hidden');
+}
+
+function closeVerificationModal() {
+    document.getElementById('verification-modal').classList.add('hidden');
+    currentOrderId = null;
+}
+
+function backToStep1() {
+    document.getElementById('verification-step-1').classList.remove('hidden');
+    document.getElementById('verification-step-2-account').classList.add('hidden');
+    document.getElementById('verification-error-2-account').classList.add('hidden');
+    document.getElementById('verification_code_account').value = '';
+}
+
+async function verifyCodeAccount() {
+    const code = document.getElementById('verification_code_account').value;
+    const errorDiv = document.getElementById('verification-error-2-account');
+    const verifyButton = document.getElementById('verify-code-button-account');
+    
+    if (!code || code.length !== 6) {
+        errorDiv.textContent = 'Введите 6-значный код';
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+    
+    errorDiv.classList.add('hidden');
+    verifyButton.disabled = true;
+    verifyButton.textContent = 'Проверка...';
+    
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const response = await fetch('{{ route("api.phone.verification.verify") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: JSON.stringify({
+                order_id: currentOrderId,
+                code: code,
+            }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Успешное подтверждение
+            showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят.', 'success');
+            closeVerificationModal();
+            // Перезагружаем страницу для обновления статуса заказа
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            errorDiv.textContent = data.message || 'Неверный код или код истек. Попробуйте еще раз.';
+            errorDiv.classList.remove('hidden');
+            verifyButton.disabled = false;
+            verifyButton.textContent = 'Подтвердить';
+        }
+    } catch (error) {
+        console.error('Ошибка при проверке кода:', error);
+        errorDiv.textContent = 'Ошибка при проверке кода. Попробуйте позже.';
+        errorDiv.classList.remove('hidden');
+        verifyButton.disabled = false;
+        verifyButton.textContent = 'Подтвердить';
+    }
+}
+
+// Инициализация обработчика для кнопки Telegram
+document.addEventListener('DOMContentLoaded', function() {
+    const telegramBotLink = document.getElementById('telegram-bot-link-account');
+    if (telegramBotLink) {
+        telegramBotLink.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const errorDiv = document.getElementById('verification-error-1');
+            const waitingDiv = document.getElementById('waiting-for-code-account');
+            
+            if (!currentOrderId) {
+                errorDiv.textContent = 'Ошибка: данные заказа не найдены';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            errorDiv.classList.add('hidden');
+            telegramBotLink.classList.add('opacity-50', 'pointer-events-none');
+            
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const response = await fetch('{{ route("api.phone.verification.start") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        order_id: currentOrderId,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.bot_url) {
+                    // Открываем Telegram бота
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    
+                    if (isMobile) {
+                        window.location.href = data.bot_url;
+                    } else {
+                        window.open(data.bot_url, '_blank');
+                    }
+                    
+                    // Показываем индикатор ожидания
+                    waitingDiv.classList.remove('hidden');
+                    
+                    // Начинаем проверку статуса верификации
+                    const pollIntervalMs = 3000;
+                    const maxPollMs = 300000; // 5 минут максимум
+                    const startedAt = Date.now();
+                    let pollStopped = false;
+                    
+                    const poll = async () => {
+                        if (pollStopped) {
+                            return;
+                        }
+                        
+                        const isPageVisible = !document.hidden;
+                        
+                        if (!currentOrderId) {
+                            pollStopped = true;
+                            return;
+                        }
+                        
+                        try {
+                            const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${currentOrderId}`, {
+                                headers: {
+                                    'Accept': 'application/json',
+                                },
+                            });
+                            const statusData = await checkResponse.json();
+                            
+                            // Если верификация успешна
+                            if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
+                                pollStopped = true;
+                                
+                                // Переходим ко второму шагу (ввод кода)
+                                document.getElementById('verification-step-1').classList.add('hidden');
+                                document.getElementById('verification-step-2-account').classList.remove('hidden');
+                                waitingDiv.classList.add('hidden');
+                                telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                                
+                                return;
+                            }
+                        } catch (error) {
+                            console.error('Ошибка проверки статуса:', error);
+                        }
+                        
+                        // Продолжаем polling
+                        const elapsed = Date.now() - startedAt;
+                        if (elapsed < maxPollMs && !pollStopped) {
+                            const nextInterval = isPageVisible ? pollIntervalMs : 5000;
+                            setTimeout(poll, nextInterval);
+                        } else {
+                            pollStopped = true;
+                            waitingDiv.classList.add('hidden');
+                            telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                        }
+                    };
+                    
+                    // Запускаем polling
+                    poll();
+                } else {
+                    errorDiv.textContent = data.message || 'Ошибка при запуске верификации';
+                    errorDiv.classList.remove('hidden');
+                    telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            } catch (error) {
+                console.error('Ошибка при запуске верификации:', error);
+                errorDiv.textContent = 'Ошибка при запуске верификации. Попробуйте позже.';
+                errorDiv.classList.remove('hidden');
+                telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        });
+    }
+    
+    // Обработка Enter для ввода кода
+    const codeInput = document.getElementById('verification_code_account');
+    if (codeInput) {
+        codeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyCodeAccount();
+            }
+        });
+    }
+});
+
+function showNotification(message, type = 'success') {
+    // Простая реализация уведомления
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+</script>
 @endsection
