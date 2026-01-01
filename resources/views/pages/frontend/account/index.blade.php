@@ -349,14 +349,78 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (data.success && data.bot_url) {
-                    // Открываем Telegram бота
-                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                    
-                    if (isMobile) {
-                        window.location.href = data.bot_url;
-                    } else {
-                        window.open(data.bot_url, '_blank');
+                    // Универсальная функция для открытия Telegram бота с поддержкой всех платформ
+                    function openTelegramBot(botUrl) {
+                        const userAgent = navigator.userAgent;
+                        const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+                        const isAndroid = /Android/i.test(userAgent);
+                        const isMac = /Macintosh|Mac OS X/i.test(userAgent);
+                        const isMobile = isIOS || isAndroid;
+                        const isDesktop = !isMobile;
+                        
+                        const botName = botUrl.match(/t\.me\/([^?]+)/)?.[1];
+                        const token = botUrl.match(/start=([^&]+)/)?.[1];
+                        
+                        if (!botName) {
+                            // Если не удалось извлечь имя бота, открываем https:// ссылку
+                            window.open(botUrl, '_blank');
+                            return;
+                        }
+                        
+                        const tgUrl = token 
+                            ? `tg://resolve?domain=${botName}&start=${token}`
+                            : `tg://resolve?domain=${botName}`;
+                        
+                        // Для Android используем window.location.href (уже работает)
+                        if (isAndroid) {
+                            window.location.href = tgUrl;
+                            return;
+                        }
+                        
+                        // Для iOS, macOS и десктопов используем скрытую ссылку с кликом
+                        try {
+                            const link = document.createElement('a');
+                            link.href = tgUrl;
+                            link.target = '_blank';
+                            link.style.display = 'none';
+                            document.body.appendChild(link);
+                            link.click();
+                            
+                            // Удаляем ссылку после небольшой задержки
+                            setTimeout(() => {
+                                if (document.body.contains(link)) {
+                                    document.body.removeChild(link);
+                                }
+                            }, 100);
+                            
+                            // Fallback для десктопов и macOS
+                            if (isDesktop || isMac) {
+                                setTimeout(() => {
+                                    // Проверяем, осталась ли страница в фокусе (значит приложение не открылось)
+                                    if (document.hasFocus()) {
+                                        window.open(botUrl, '_blank');
+                                    }
+                                }, 500);
+                            }
+                            
+                            // Fallback для iOS
+                            if (isIOS) {
+                                setTimeout(() => {
+                                    // Проверяем, осталась ли страница в фокусе (значит приложение не открылось)
+                                    if (document.hasFocus()) {
+                                        window.open(botUrl, '_blank');
+                                    }
+                                }, 1000);
+                            }
+                        } catch (error) {
+                            console.error('Ошибка при открытии Telegram через tg://:', error);
+                            // В случае ошибки открываем через https://
+                            window.open(botUrl, '_blank');
+                        }
                     }
+                    
+                    // Открываем бота используя универсальную функцию
+                    openTelegramBot(data.bot_url);
                     
                     // Показываем индикатор ожидания
                     waitingDiv.classList.remove('hidden');
