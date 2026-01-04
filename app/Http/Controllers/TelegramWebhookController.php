@@ -235,6 +235,12 @@ class TelegramWebhookController extends Controller
                         ]);
                     }
                 } elseif ($token && $chatId) {
+                    \Log::info('Attempting to complete verification start', [
+                        'token_received' => $token,
+                        'token_length' => strlen($token),
+                        'chat_id' => $chatId,
+                    ]);
+
                     $verification = $this->verificationService->completeVerificationStart($token, (string) $chatId);
 
                     if ($verification) {

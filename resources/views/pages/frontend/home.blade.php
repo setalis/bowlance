@@ -2053,7 +2053,24 @@
                     localStorage.removeItem('verificationInProgress');
                     localStorage.removeItem('verificationStartedAt');
                     localStorage.removeItem('pendingVerificationSuccess');
+                    window.verificationToken = null;
+                    window.pendingOrderId = null;
+                    window.pendingOrderPhone = null;
                 }
+            }
+            
+            // Очищаем все данные верификации при загрузке страницы, если нет активного заказа
+            // Это предотвращает использование старых токенов
+            if (!window.pendingOrderId && !localStorage.getItem('currentVerificationOrderId')) {
+                console.log('Нет активного заказа, очищаю все данные верификации');
+                localStorage.removeItem('pendingVerificationCheck');
+                localStorage.removeItem('currentVerificationOrderId');
+                localStorage.removeItem('verificationInProgress');
+                localStorage.removeItem('verificationStartedAt');
+                localStorage.removeItem('pendingVerificationSuccess');
+                window.verificationToken = null;
+                window.pendingOrderId = null;
+                window.pendingOrderPhone = null;
             }
             
             // Проверяем при загрузке страницы только один раз
@@ -2150,7 +2167,15 @@
                         }
 
                         if (response.ok && data.success) {
-                            // Сохраняем токен для проверки статуса
+                            // Очищаем все старые данные перед сохранением новых
+                            localStorage.removeItem('pendingVerificationCheck');
+                            localStorage.removeItem('currentVerificationOrderId');
+                            localStorage.removeItem('verificationInProgress');
+                            localStorage.removeItem('verificationStartedAt');
+                            localStorage.removeItem('pendingVerificationSuccess');
+                            window.verificationToken = null;
+                            
+                            // Сохраняем новый токен и данные
                             window.verificationToken = data.verification_token;
                             
                             // Сохраняем данные в localStorage ДО открытия Telegram
@@ -2161,7 +2186,8 @@
                                 localStorage.setItem('verificationStartedAt', Date.now().toString());
                                 console.log('Сохранено в localStorage:', {
                                     orderId: window.pendingOrderId,
-                                    token: data.verification_token
+                                    token: data.verification_token,
+                                    token_length: data.verification_token ? data.verification_token.length : 0
                                 });
                             }
                             

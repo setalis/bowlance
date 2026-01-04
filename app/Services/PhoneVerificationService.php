@@ -14,9 +14,24 @@ class PhoneVerificationService
 
     public function startVerification(Order $order, string $phone): PhoneVerification
     {
+        // Помечаем все старые неверифицированные верификации для этого заказа как истекшие
+        // чтобы они не конфликтовали с новой верификацией
+        PhoneVerification::where('order_id', $order->id)
+            ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->update(['expires_at' => Carbon::now()->subMinute()]);
+
         $token = PhoneVerification::generateToken();
         $expiresMinutes = max(1, (int) config('verification.code_expires_minutes', 10));
         $expiresAt = Carbon::now()->addMinutes($expiresMinutes);
+
+        \Log::info('Creating phone verification', [
+            'order_id' => $order->id,
+            'phone' => $phone,
+            'token' => $token,
+            'token_length' => strlen($token),
+            'expires_at' => $expiresAt->toDateTimeString(),
+        ]);
 
         $verification = PhoneVerification::create([
             'order_id' => $order->id,
@@ -24,6 +39,13 @@ class PhoneVerificationService
             'verification_token' => $token,
             'expires_at' => $expiresAt,
             'attempts' => 0,
+        ]);
+
+        \Log::info('Phone verification created successfully', [
+            'verification_id' => $verification->id,
+            'order_id' => $verification->order_id,
+            'token' => $verification->verification_token,
+            'token_length' => strlen($verification->verification_token),
         ]);
 
         return $verification;
@@ -34,6 +56,13 @@ class PhoneVerificationService
         // Очищаем токен от возможных пробелов и спецсимволов
         $token = trim($token);
         $originalToken = $token;
+        $tokenLength = strlen($token);
+
+        \Log::info('Searching for verification token', [
+            'token' => $originalToken,
+            'token_length' => $tokenLength,
+            'chat_id' => $chatId,
+        ]);
 
         // Ищем верификацию по точному совпадению токена
         $verification = PhoneVerification::byToken($token)
@@ -41,20 +70,49 @@ class PhoneVerificationService
             ->where('expires_at', '>', now())
             ->first();
 
+        if ($verification) {
+            \Log::info('Verification found by exact match', [
+                'verification_id' => $verification->id,
+                'order_id' => $verification->order_id,
+                'token' => $verification->verification_token,
+            ]);
+        }
+
         // Если не найдено по точному совпадению, пробуем найти по началу токена
         // (на случай, если Telegram обрезал токен) - только если токен длиной >= 16 символов
-        if (! $verification && strlen($token) >= 16) {
+        if (! $verification && $tokenLength >= 16) {
             $tokenPrefix = substr($token, 0, 16);
+            \Log::info('Trying to find by prefix', [
+                'prefix' => $tokenPrefix,
+                'prefix_length' => strlen($tokenPrefix),
+            ]);
+
             $verification = PhoneVerification::where('verification_token', 'LIKE', $tokenPrefix.'%')
                 ->whereNull('verified_at')
                 ->where('expires_at', '>', now())
                 ->orderBy('created_at', 'desc')
                 ->first();
+
+            if ($verification) {
+                \Log::info('Verification found by prefix', [
+                    'verification_id' => $verification->id,
+                    'order_id' => $verification->order_id,
+                    'found_token' => $verification->verification_token,
+                    'found_token_length' => strlen($verification->verification_token),
+                ]);
+            }
         }
 
         if (! $verification) {
-            // Проверяем, существует ли токен вообще
+            // Проверяем, существует ли токен вообще (без проверки срока действия)
             $tokenRecord = PhoneVerification::byToken($originalToken)->first();
+
+            // Также проверяем активные верификации для этого заказа
+            $recentVerifications = PhoneVerification::whereNull('verified_at')
+                ->where('expires_at', '>', now())
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get(['id', 'order_id', 'verification_token', 'created_at', 'expires_at']);
 
             if ($tokenRecord) {
                 // Токен существует, но не прошел проверки
@@ -74,6 +132,12 @@ class PhoneVerificationService
                     'now' => now()->toDateTimeString(),
                     'expires_in_minutes' => $expiresIn,
                     'telegram_chat_id' => $tokenRecord->telegram_chat_id,
+                    'recent_verifications' => $recentVerifications->map(fn ($v) => [
+                        'id' => $v->id,
+                        'order_id' => $v->order_id,
+                        'token_length' => strlen($v->verification_token ?? ''),
+                        'token_start' => substr($v->verification_token ?? '', 0, 16),
+                    ])->toArray(),
                 ]);
             } else {
                 // Токен не существует в базе
@@ -81,6 +145,12 @@ class PhoneVerificationService
                     'token' => $originalToken,
                     'token_length' => strlen($originalToken),
                     'chat_id' => $chatId,
+                    'recent_verifications' => $recentVerifications->map(fn ($v) => [
+                        'id' => $v->id,
+                        'order_id' => $v->order_id,
+                        'token_length' => strlen($v->verification_token ?? ''),
+                        'token_start' => substr($v->verification_token ?? '', 0, 16),
+                    ])->toArray(),
                 ]);
             }
 
