@@ -1641,6 +1641,16 @@
                 checkoutForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
                     
+                    // Очищаем старые данные верификации перед началом нового процесса
+                    localStorage.removeItem('pendingVerificationCheck');
+                    localStorage.removeItem('currentVerificationOrderId');
+                    localStorage.removeItem('verificationInProgress');
+                    localStorage.removeItem('verificationStartedAt');
+                    localStorage.removeItem('pendingVerificationSuccess');
+                    window.verificationToken = null;
+                    window.pendingOrderId = null;
+                    window.pendingOrderPhone = null;
+                    
                     const submitButton = document.getElementById('checkout-submit');
                     const errorDiv = document.getElementById('checkout-error');
                     const customerName = document.getElementById('customer_name').value;
@@ -1975,6 +1985,23 @@
                 // Проверяем, идет ли процесс верификации
                 const verificationInProgress = localStorage.getItem('verificationInProgress');
                 const currentOrderId = localStorage.getItem('currentVerificationOrderId');
+                const verificationStartedAt = localStorage.getItem('verificationStartedAt');
+                
+                // Проверяем, не истекло ли время верификации (максимум 10 минут)
+                if (verificationStartedAt) {
+                    const startedAt = parseInt(verificationStartedAt);
+                    const elapsed = Date.now() - startedAt;
+                    const maxTime = 10 * 60 * 1000; // 10 минут
+                    
+                    if (elapsed > maxTime) {
+                        console.log('Время верификации истекло, очищаю данные');
+                        localStorage.removeItem('pendingVerificationCheck');
+                        localStorage.removeItem('currentVerificationOrderId');
+                        localStorage.removeItem('verificationInProgress');
+                        localStorage.removeItem('verificationStartedAt');
+                        return;
+                    }
+                }
                 
                 console.log('Состояние верификации:', {
                     inProgress: verificationInProgress,
@@ -1994,25 +2021,38 @@
                         console.log('Статус верификации:', statusData);
                         
                         if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
-                            // Очищаем флаги
+                            console.log('Верификация успешна, очищаю корзину и показываю уведомление');
+                            
+                            // Вызываем handleVerificationSuccess для очистки корзины и всех данных
+                            handleVerificationSuccess();
+                            
+                            // Очищаем все флаги верификации
                             localStorage.removeItem('pendingVerificationCheck');
                             localStorage.removeItem('currentVerificationOrderId');
                             localStorage.removeItem('verificationInProgress');
                             localStorage.removeItem('verificationStartedAt');
-                            
-                            console.log('Верификация успешна, показываю уведомление');
-                            
-                            // Показываем только уведомление, не вызываем handleVerificationSuccess
-                            // чтобы не очищать корзину повторно, если она уже очищена
-                            showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
-                            
-                            // Закрываем модальные окна, если они открыты
-                            window.closeVerificationModal();
-                            window.closeCartDrawer();
+                            localStorage.removeItem('pendingVerificationSuccess');
                         }
                     } catch (error) {
                         console.error('Ошибка проверки статуса при возврате:', error);
                     }
+                }
+            }
+            
+            // Очищаем устаревшие данные верификации при загрузке страницы
+            const verificationStartedAt = localStorage.getItem('verificationStartedAt');
+            if (verificationStartedAt) {
+                const startedAt = parseInt(verificationStartedAt);
+                const elapsed = Date.now() - startedAt;
+                const maxTime = 10 * 60 * 1000; // 10 минут
+                
+                if (elapsed > maxTime) {
+                    console.log('Обнаружены устаревшие данные верификации, очищаю');
+                    localStorage.removeItem('pendingVerificationCheck');
+                    localStorage.removeItem('currentVerificationOrderId');
+                    localStorage.removeItem('verificationInProgress');
+                    localStorage.removeItem('verificationStartedAt');
+                    localStorage.removeItem('pendingVerificationSuccess');
                 }
             }
             
