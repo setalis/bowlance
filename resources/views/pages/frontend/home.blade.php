@@ -1392,6 +1392,71 @@
             }
         }
 
+        // Обработка возврата на ту же страницу после верификации
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('return') === 'true') {
+                const savedUrl = localStorage.getItem('verificationReturnUrl');
+                if (savedUrl) {
+                    // Используем BroadcastChannel для связи между вкладками
+                    const channel = new BroadcastChannel('verification_channel');
+                    
+                    // Отправляем сообщение существующим вкладкам о завершении верификации
+                    channel.postMessage({ 
+                        type: 'verification_completed', 
+                        url: savedUrl 
+                    });
+                    
+                    // Проверяем, есть ли уже открытая вкладка с ожиданием верификации
+                    const verificationInProgress = localStorage.getItem('verificationInProgress');
+                    if (verificationInProgress === 'true') {
+                        // Пытаемся закрыть текущую вкладку, если она была открыта из Telegram
+                        // Используем небольшую задержку, чтобы дать время существующей вкладке обновиться
+                        setTimeout(() => {
+                            // Если вкладка была открыта не пользователем напрямую, пытаемся закрыть
+                            try {
+                                if (window.history.length <= 1) {
+                                    // Если в истории только одна страница, значит это новая вкладка
+                                    window.close();
+                                } else {
+                                    // Иначе просто переходим на сохраненный URL
+                                    localStorage.removeItem('verificationReturnUrl');
+                                    window.location.replace(savedUrl);
+                                }
+                            } catch (e) {
+                                // Если не удалось закрыть, просто переходим на сохраненный URL
+                                localStorage.removeItem('verificationReturnUrl');
+                                window.location.replace(savedUrl);
+                            }
+                        }, 100);
+                        return;
+                    }
+                    // Если верификация не в процессе, просто переходим на сохраненный URL
+                    localStorage.removeItem('verificationReturnUrl');
+                    window.location.replace(savedUrl);
+                    return;
+                } else {
+                    // Если сохраненного URL нет, просто убираем параметр return
+                    const newUrl = window.location.pathname + window.location.search.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                    if (newUrl !== window.location.pathname + window.location.search) {
+                        window.location.replace(newUrl || window.location.pathname);
+                    }
+                }
+            }
+            
+            // Слушаем сообщения от других вкладок о завершении верификации
+            const channel = new BroadcastChannel('verification_channel');
+            channel.addEventListener('message', function(event) {
+                if (event.data.type === 'verification_completed') {
+                    // Если это существующая вкладка с ожиданием верификации, обновляем её
+                    const verificationInProgress = localStorage.getItem('verificationInProgress');
+                    if (verificationInProgress === 'true' && event.data.url) {
+                        window.location.replace(event.data.url);
+                    }
+                }
+            });
+        })();
+
         document.addEventListener('DOMContentLoaded', function() {
             const categoryButtons = document.querySelectorAll('[data-category-id]');
             const modal = document.getElementById('category-modal');
@@ -2216,8 +2281,8 @@
                                 const token = botUrl.match(/start=([^&]+)/)?.[1];
                                 
                                 if (!botName) {
-                                    // Если не удалось извлечь имя бота, открываем https:// ссылку
-                                    window.open(botUrl, '_blank');
+                                    // Если не удалось извлечь имя бота, используем текущую вкладку
+                                    window.location.href = botUrl;
                                     return;
                                 }
                                 
@@ -2225,17 +2290,19 @@
                                     ? `tg://resolve?domain=${botName}&start=${token}`
                                     : `tg://resolve?domain=${botName}`;
                                 
-                                // Для Android используем window.location.href (уже работает)
-                                if (isAndroid) {
+                                // Для всех платформ используем window.location.href для перехода на приложение
+                                // Страница останется открытой в фоне, но переключится на Telegram
+                                if (isAndroid || isIOS) {
+                                    // Для мобильных устройств используем прямой переход
                                     window.location.href = tgUrl;
                                     return;
                                 }
                                 
-                                // Для iOS, macOS и десктопов используем скрытую ссылку с кликом
+                                // Для десктопов и macOS используем скрытую ссылку без target="_blank"
                                 try {
                                     const link = document.createElement('a');
                                     link.href = tgUrl;
-                                    link.target = '_blank';
+                                    // Убираем target="_blank" чтобы не открывать новую вкладку
                                     link.style.display = 'none';
                                     document.body.appendChild(link);
                                     link.click();
@@ -2247,31 +2314,30 @@
                                         }
                                     }, 100);
                                     
-                                    // Fallback для десктопов и macOS
+                                    // Fallback для десктопов и macOS - используем текущую вкладку
                                     if (isDesktop || isMac) {
                                         setTimeout(() => {
                                             // Проверяем, осталась ли страница в фокусе (значит приложение не открылось)
                                             if (document.hasFocus()) {
-                                                window.open(botUrl, '_blank');
+                                                // Используем текущую вкладку вместо новой
+                                                window.location.href = botUrl;
                                             }
                                         }, 500);
                                     }
-                                    
-                                    // Fallback для iOS
-                                    if (isIOS) {
-                                        setTimeout(() => {
-                                            // Проверяем, осталась ли страница в фокусе (значит приложение не открылось)
-                                            if (document.hasFocus()) {
-                                                window.open(botUrl, '_blank');
-                                            }
-                                        }, 1000);
-                                    }
                                 } catch (error) {
                                     console.error('Ошибка при открытии Telegram через tg://:', error);
-                                    // В случае ошибки открываем через https://
-                                    window.open(botUrl, '_blank');
+                                    // В случае ошибки используем текущую вкладку
+                                    window.location.href = botUrl;
                                 }
                             }
+                            
+                            // Сохраняем текущий URL для возврата на ту же страницу
+                            const currentUrl = window.location.href;
+                            localStorage.setItem('verificationReturnUrl', currentUrl);
+                            
+                            // Используем BroadcastChannel для связи между вкладками
+                            const channel = new BroadcastChannel('verification_channel');
+                            channel.postMessage({ type: 'verification_started', url: currentUrl });
                             
                             // Открываем бота используя универсальную функцию
                             openTelegramBot(botUrl);
