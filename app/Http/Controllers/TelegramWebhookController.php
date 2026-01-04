@@ -169,18 +169,38 @@ class TelegramWebhookController extends Controller
 
                 // Декодируем токен на случай URL-кодирования
                 if ($token) {
-                    $token = urldecode($token);
+                    // Пробуем декодировать несколько раз, так как может быть двойное кодирование
+                    $decodedToken = urldecode($token);
+                    // Если декодирование изменило токен, используем декодированный
+                    if ($decodedToken !== $token) {
+                        $token = $decodedToken;
+                    }
+                    // Пробуем еще раз декодировать (на случай двойного кодирования)
+                    $doubleDecoded = urldecode($token);
+                    if ($doubleDecoded !== $token && strlen($doubleDecoded) > strlen($token)) {
+                        $token = $doubleDecoded;
+                    }
                     $token = trim($token);
+
+                    // Убираем возможные пробелы и спецсимволы в начале/конце
+                    $token = trim($token, " \t\n\r\0\x0B");
                 }
 
                 \Log::info('Processing /start command', [
                     'text' => $text,
                     'text_length' => strlen($text),
-                    'token' => $token,
-                    'token_length' => $token ? strlen($token) : 0,
+                    'raw_token' => $parts[1] ?? null,
+                    'raw_token_length' => isset($parts[1]) ? strlen($parts[1]) : 0,
+                    'decoded_token' => $token,
+                    'decoded_token_length' => $token ? strlen($token) : 0,
                     'chat_id' => $chatId,
                     'parts_count' => count($parts),
                     'all_parts' => $parts,
+                    'token_encoding_check' => [
+                        'is_url_encoded' => isset($parts[1]) && $parts[1] !== urldecode($parts[1]),
+                        'contains_spaces' => isset($parts[1]) && str_contains($parts[1], ' '),
+                        'contains_newlines' => isset($parts[1]) && str_contains($parts[1], "\n"),
+                    ],
                 ]);
 
                 // Проверяем, это токен для входа (начинается с "login_")

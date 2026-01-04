@@ -83,7 +83,10 @@ class PhoneVerification extends Model
 
     public static function generateToken(): string
     {
-        return bin2hex(random_bytes(32));
+        // Генерируем токен длиной 32 символа (16 байт в hex)
+        // Это уменьшает вероятность обрезки Telegram при передаче через deep links
+        // и сохраняет достаточную безопасность (2^128 возможных комбинаций)
+        return bin2hex(random_bytes(16));
     }
 
     public function scopeByToken(Builder $query, string $token): Builder
