@@ -425,62 +425,54 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Показываем индикатор ожидания
                     waitingDiv.classList.remove('hidden');
                     
-                    // Начинаем проверку статуса верификации
-                    const pollIntervalMs = 3000;
-                    const maxPollMs = 300000; // 5 минут максимум
-                    const startedAt = Date.now();
-                    let pollStopped = false;
+                    // Сохраняем order_id для проверки при возврате на страницу
+                    if (currentOrderId) {
+                        localStorage.setItem('currentVerificationOrderId', currentOrderId);
+                    }
                     
-                    const poll = async () => {
-                        if (pollStopped) {
-                            return;
-                        }
-                        
-                        const isPageVisible = !document.hidden;
-                        
-                        if (!currentOrderId) {
-                            pollStopped = true;
+                    // Простая проверка статуса только при возврате на страницу
+                    const checkVerificationStatus = async () => {
+                        const orderId = currentOrderId || localStorage.getItem('currentVerificationOrderId');
+                        if (!orderId) {
                             return;
                         }
                         
                         try {
-                            const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${currentOrderId}`, {
+                            const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${orderId}`, {
                                 headers: {
                                     'Accept': 'application/json',
                                 },
                             });
                             const statusData = await checkResponse.json();
                             
-                            // Если верификация успешна
                             if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
-                                pollStopped = true;
-                                
                                 // Переходим ко второму шагу (ввод кода)
                                 document.getElementById('verification-step-1').classList.add('hidden');
                                 document.getElementById('verification-step-2-account').classList.remove('hidden');
                                 waitingDiv.classList.add('hidden');
                                 telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
                                 
-                                return;
+                                // Удаляем обработчики
+                                if (window.verificationVisibilityHandlerAccount) {
+                                    document.removeEventListener('visibilitychange', window.verificationVisibilityHandlerAccount);
+                                    window.removeEventListener('focus', window.verificationVisibilityHandlerAccount);
+                                }
                             }
                         } catch (error) {
                             console.error('Ошибка проверки статуса:', error);
                         }
-                        
-                        // Продолжаем polling
-                        const elapsed = Date.now() - startedAt;
-                        if (elapsed < maxPollMs && !pollStopped) {
-                            const nextInterval = isPageVisible ? pollIntervalMs : 5000;
-                            setTimeout(poll, nextInterval);
-                        } else {
-                            pollStopped = true;
-                            waitingDiv.classList.add('hidden');
-                            telegramBotLink.classList.remove('opacity-50', 'pointer-events-none');
-                        }
                     };
                     
-                    // Запускаем polling
-                    poll();
+                    // Сохраняем обработчик для возможности его удаления позже
+                    window.verificationVisibilityHandlerAccount = checkVerificationStatus;
+                    
+                    // Проверяем статус только при возврате на страницу (без постоянного polling)
+                    document.addEventListener('visibilitychange', function() {
+                        if (!document.hidden) {
+                            checkVerificationStatus();
+                        }
+                    });
+                    window.addEventListener('focus', checkVerificationStatus);
                 } else {
                     errorDiv.textContent = data.message || 'Ошибка при запуске верификации';
                     errorDiv.classList.remove('hidden');
