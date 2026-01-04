@@ -34,13 +34,6 @@ class PhoneVerificationService
         // Очищаем токен от возможных пробелов и спецсимволов
         $token = trim($token);
         $originalToken = $token;
-        $tokenLength = strlen($token);
-
-        \Log::info('Starting verification token search', [
-            'received_token' => $originalToken,
-            'token_length' => $tokenLength,
-            'chat_id' => $chatId,
-        ]);
 
         // Ищем верификацию по точному совпадению токена
         $verification = PhoneVerification::byToken($token)
@@ -48,110 +41,20 @@ class PhoneVerificationService
             ->where('expires_at', '>', now())
             ->first();
 
-        $searchMethod = 'exact_match';
-
-        // Если не найдено по точному совпадению, пробуем найти по префиксу токена
-        // (на случай, если Telegram обрезал токен)
-        if (! $verification && $tokenLength >= 16) {
-            // Пробуем разные длины префикса: 64, 48, 32, 24, 16 символов
-            $prefixLengths = [64, 48, 32, 24, 16];
-
-            foreach ($prefixLengths as $prefixLength) {
-                if ($tokenLength >= $prefixLength) {
-                    $tokenPrefix = substr($token, 0, $prefixLength);
-                    $verification = PhoneVerification::where('verification_token', 'LIKE', $tokenPrefix.'%')
-                        ->whereNull('verified_at')
-                        ->where('expires_at', '>', now())
-                        ->orderBy('created_at', 'desc')
-                        ->first();
-
-                    if ($verification) {
-                        $searchMethod = "prefix_{$prefixLength}_chars";
-                        \Log::info('Verification found by token prefix', [
-                            'original_token' => $originalToken,
-                            'token_prefix' => $tokenPrefix,
-                            'prefix_length' => $prefixLength,
-                            'found_token' => $verification->verification_token,
-                            'found_token_length' => strlen($verification->verification_token),
-                            'verification_id' => $verification->id,
-                            'search_method' => $searchMethod,
-                        ]);
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Если не найдено по префиксу, пробуем найти по последним символам токена
-        // (на случай, если начало токена было обрезано)
-        if (! $verification && $tokenLength >= 16) {
-            $suffixLengths = [32, 24, 16];
-
-            foreach ($suffixLengths as $suffixLength) {
-                if ($tokenLength >= $suffixLength) {
-                    $tokenSuffix = substr($token, -$suffixLength);
-                    $verification = PhoneVerification::where('verification_token', 'LIKE', '%'.$tokenSuffix)
-                        ->whereNull('verified_at')
-                        ->where('expires_at', '>', now())
-                        ->orderBy('created_at', 'desc')
-                        ->first();
-
-                    if ($verification) {
-                        $searchMethod = "suffix_{$suffixLength}_chars";
-                        \Log::info('Verification found by token suffix', [
-                            'original_token' => $originalToken,
-                            'token_suffix' => $tokenSuffix,
-                            'suffix_length' => $suffixLength,
-                            'found_token' => $verification->verification_token,
-                            'found_token_length' => strlen($verification->verification_token),
-                            'verification_id' => $verification->id,
-                            'search_method' => $searchMethod,
-                        ]);
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Если не найдено, пробуем найти по частичному совпадению в середине токена
-        // (на случай, если обрезаны и начало, и конец)
-        if (! $verification && $tokenLength >= 16) {
-            // Берем среднюю часть токена
-            $middleStart = (int) floor(($tokenLength - 16) / 2);
-            $middlePart = substr($token, $middleStart, 16);
-
-            if (strlen($middlePart) >= 16) {
-                $verification = PhoneVerification::where('verification_token', 'LIKE', '%'.$middlePart.'%')
-                    ->whereNull('verified_at')
-                    ->where('expires_at', '>', now())
-                    ->orderBy('created_at', 'desc')
-                    ->first();
-
-                if ($verification) {
-                    $searchMethod = 'middle_part_16_chars';
-                    \Log::info('Verification found by token middle part', [
-                        'original_token' => $originalToken,
-                        'token_middle_part' => $middlePart,
-                        'found_token' => $verification->verification_token,
-                        'found_token_length' => strlen($verification->verification_token),
-                        'verification_id' => $verification->id,
-                        'search_method' => $searchMethod,
-                    ]);
-                }
-            }
-        }
-
-        if (! $verification) {
-            // Проверяем, существует ли токен вообще (для диагностики)
-            $tokenRecord = PhoneVerification::byToken($originalToken)->first();
-
-            // Также проверяем активные верификации для этого чата
-            $activeVerifications = PhoneVerification::where('telegram_chat_id', $chatId)
+        // Если не найдено по точному совпадению, пробуем найти по началу токена
+        // (на случай, если Telegram обрезал токен) - только если токен длиной >= 16 символов
+        if (! $verification && strlen($token) >= 16) {
+            $tokenPrefix = substr($token, 0, 16);
+            $verification = PhoneVerification::where('verification_token', 'LIKE', $tokenPrefix.'%')
                 ->whereNull('verified_at')
                 ->where('expires_at', '>', now())
                 ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->get(['id', 'verification_token', 'created_at', 'expires_at', 'order_id']);
+                ->first();
+        }
+
+        if (! $verification) {
+            // Проверяем, существует ли токен вообще
+            $tokenRecord = PhoneVerification::byToken($originalToken)->first();
 
             if ($tokenRecord) {
                 // Токен существует, но не прошел проверки
@@ -171,12 +74,6 @@ class PhoneVerificationService
                     'now' => now()->toDateTimeString(),
                     'expires_in_minutes' => $expiresIn,
                     'telegram_chat_id' => $tokenRecord->telegram_chat_id,
-                    'active_verifications_for_chat' => $activeVerifications->map(fn ($v) => [
-                        'id' => $v->id,
-                        'token_length' => strlen($v->verification_token ?? ''),
-                        'token_start' => substr($v->verification_token ?? '', 0, 16),
-                        'created_at' => $v->created_at,
-                    ])->toArray(),
                 ]);
             } else {
                 // Токен не существует в базе
@@ -184,41 +81,11 @@ class PhoneVerificationService
                     'token' => $originalToken,
                     'token_length' => strlen($originalToken),
                     'chat_id' => $chatId,
-                    'active_verifications_for_chat' => $activeVerifications->map(fn ($v) => [
-                        'id' => $v->id,
-                        'token_length' => strlen($v->verification_token ?? ''),
-                        'token_start' => substr($v->verification_token ?? '', 0, 16),
-                        'created_at' => $v->created_at,
-                    ])->toArray(),
-                    'search_attempts' => [
-                        'exact_match' => true,
-                        'prefix_64' => $tokenLength >= 64,
-                        'prefix_48' => $tokenLength >= 48,
-                        'prefix_32' => $tokenLength >= 32,
-                        'prefix_24' => $tokenLength >= 24,
-                        'prefix_16' => $tokenLength >= 16,
-                        'suffix_32' => $tokenLength >= 32,
-                        'suffix_24' => $tokenLength >= 24,
-                        'suffix_16' => $tokenLength >= 16,
-                        'middle_part' => $tokenLength >= 16,
-                    ],
                 ]);
             }
 
             return null;
         }
-
-        // Логируем успешный поиск
-        \Log::info('Verification token found successfully', [
-            'received_token' => $originalToken,
-            'received_token_length' => $tokenLength,
-            'found_token' => $verification->verification_token,
-            'found_token_length' => strlen($verification->verification_token),
-            'verification_id' => $verification->id,
-            'order_id' => $verification->order_id,
-            'search_method' => $searchMethod,
-            'chat_id' => $chatId,
-        ]);
 
         // Обновляем telegram_chat_id если его еще нет, или если это тот же чат
         if ($verification->telegram_chat_id === null || $verification->telegram_chat_id === $chatId) {
