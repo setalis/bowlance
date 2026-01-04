@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\PhoneVerification;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PhoneVerificationService
 {
@@ -281,23 +282,34 @@ class PhoneVerificationService
 
         // Обновляем статус заказа ТОЛЬКО если верификация прошла успешно
         // Это происходит только если номера совпали (код выше выполнился)
-        // Используем fresh() чтобы получить актуальный статус заказа из базы данных
-        $order = $verification->order()->first();
+        // Используем прямой запрос к БД для гарантированного обновления статуса
+        $orderId = $verification->order_id;
+        $order = Order::find($orderId);
+
         if ($order) {
             $orderStatusBefore = $order->status;
 
             // Обновляем статус заказа, если он еще не подтвержден
             if ($order->status === 'pending_verification') {
-                $order->update(['status' => 'new']);
+                // Используем прямой SQL запрос для гарантированного обновления
+                $updatedRows = DB::table('orders')
+                    ->where('id', $orderId)
+                    ->where('status', 'pending_verification')
+                    ->update(['status' => 'new', 'updated_at' => now()]);
+
+                // Перезагружаем заказ для проверки
+                $order = Order::find($orderId);
+
                 \Log::info('Order status updated to "new" after successful phone verification', [
-                    'order_id' => $order->id,
+                    'order_id' => $orderId,
                     'verification_id' => $verification->id,
                     'status_before' => $orderStatusBefore,
-                    'status_after' => $order->fresh()->status,
+                    'status_after' => $order->status,
+                    'updated_rows' => $updatedRows,
                 ]);
             } else {
                 \Log::warning('Order status was NOT updated - order status is not pending_verification', [
-                    'order_id' => $order->id,
+                    'order_id' => $orderId,
                     'order_status' => $order->status,
                     'verification_id' => $verification->id,
                 ]);
@@ -305,7 +317,7 @@ class PhoneVerificationService
         } else {
             \Log::error('Order not found for verification', [
                 'verification_id' => $verification->id,
-                'order_id' => $verification->order_id,
+                'order_id' => $orderId,
             ]);
         }
 
@@ -403,19 +415,31 @@ class PhoneVerificationService
         $verification->markAsVerified();
 
         // Загружаем заказ заново из базы данных для получения актуального статуса
-        $order = Order::find($order->id);
+        $orderId = $order->id;
+        $order = Order::find($orderId);
+
         if ($order && $order->status === 'pending_verification') {
             $orderStatusBefore = $order->status;
-            $order->update(['status' => 'new']);
+
+            // Используем прямой SQL запрос для гарантированного обновления
+            $updatedRows = DB::table('orders')
+                ->where('id', $orderId)
+                ->where('status', 'pending_verification')
+                ->update(['status' => 'new', 'updated_at' => now()]);
+
+            // Перезагружаем заказ для проверки
+            $order = Order::find($orderId);
+
             \Log::info('Order status updated to "new" after successful code verification', [
-                'order_id' => $order->id,
+                'order_id' => $orderId,
                 'verification_id' => $verification->id,
                 'status_before' => $orderStatusBefore,
-                'status_after' => $order->fresh()->status,
+                'status_after' => $order->status,
+                'updated_rows' => $updatedRows,
             ]);
         } else {
             \Log::warning('Order status was NOT updated after code verification - order status is not pending_verification', [
-                'order_id' => $order->id ?? 'unknown',
+                'order_id' => $orderId ?? 'unknown',
                 'order_status' => $order->status ?? 'unknown',
                 'verification_id' => $verification->id,
             ]);
