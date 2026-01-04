@@ -443,6 +443,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                     'Accept': 'application/json',
                                 },
                             });
+                            
+                            if (!checkResponse.ok) {
+                                console.error('Ошибка проверки статуса:', checkResponse.status, checkResponse.statusText);
+                                if (checkResponse.status === 404) {
+                                    console.error('Маршрут не найден. Проверьте конфигурацию маршрутов на сервере.');
+                                }
+                                return;
+                            }
+                            
                             const statusData = await checkResponse.json();
                             
                             if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {

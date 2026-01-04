@@ -281,18 +281,31 @@ class PhoneVerificationService
 
         // Обновляем статус заказа ТОЛЬКО если верификация прошла успешно
         // Это происходит только если номера совпали (код выше выполнился)
-        $order = $verification->order;
-        if ($order && $order->status === 'pending_verification') {
-            $order->update(['status' => 'new']);
-            \Log::info('Order status updated to "new" after successful phone verification', [
-                'order_id' => $order->id,
-                'verification_id' => $verification->id,
-            ]);
+        // Используем fresh() чтобы получить актуальный статус заказа из базы данных
+        $order = $verification->order()->first();
+        if ($order) {
+            $orderStatusBefore = $order->status;
+
+            // Обновляем статус заказа, если он еще не подтвержден
+            if ($order->status === 'pending_verification') {
+                $order->update(['status' => 'new']);
+                \Log::info('Order status updated to "new" after successful phone verification', [
+                    'order_id' => $order->id,
+                    'verification_id' => $verification->id,
+                    'status_before' => $orderStatusBefore,
+                    'status_after' => $order->fresh()->status,
+                ]);
+            } else {
+                \Log::warning('Order status was NOT updated - order status is not pending_verification', [
+                    'order_id' => $order->id,
+                    'order_status' => $order->status,
+                    'verification_id' => $verification->id,
+                ]);
+            }
         } else {
-            \Log::warning('Order status was NOT updated - order status is not pending_verification', [
-                'order_id' => $order->id ?? 'unknown',
-                'order_status' => $order->status ?? 'unknown',
+            \Log::error('Order not found for verification', [
                 'verification_id' => $verification->id,
+                'order_id' => $verification->order_id,
             ]);
         }
 
@@ -388,7 +401,25 @@ class PhoneVerificationService
         }
 
         $verification->markAsVerified();
-        $order->update(['status' => 'new']);
+
+        // Загружаем заказ заново из базы данных для получения актуального статуса
+        $order = Order::find($order->id);
+        if ($order && $order->status === 'pending_verification') {
+            $orderStatusBefore = $order->status;
+            $order->update(['status' => 'new']);
+            \Log::info('Order status updated to "new" after successful code verification', [
+                'order_id' => $order->id,
+                'verification_id' => $verification->id,
+                'status_before' => $orderStatusBefore,
+                'status_after' => $order->fresh()->status,
+            ]);
+        } else {
+            \Log::warning('Order status was NOT updated after code verification - order status is not pending_verification', [
+                'order_id' => $order->id ?? 'unknown',
+                'order_status' => $order->status ?? 'unknown',
+                'verification_id' => $verification->id,
+            ]);
+        }
 
         return true;
     }

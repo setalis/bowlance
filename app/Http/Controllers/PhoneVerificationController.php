@@ -6,6 +6,7 @@ use App\Http\Requests\PhoneVerification\StartVerificationRequest;
 use App\Http\Requests\PhoneVerification\StorePhoneVerificationRequest;
 use App\Http\Requests\PhoneVerification\VerifyPhoneCodeRequest;
 use App\Models\Order;
+use App\Models\PhoneVerification;
 use App\Services\PhoneVerificationService;
 use Illuminate\Http\JsonResponse;
 
@@ -187,7 +188,10 @@ class PhoneVerificationController extends Controller
                 ], 404);
             }
 
-            $verification = $order->phoneVerification;
+            // Получаем последнюю верификацию для заказа
+            $verification = PhoneVerification::where('order_id', $orderId)
+                ->latest('created_at')
+                ->first();
 
             return response()->json([
                 'success' => true,
