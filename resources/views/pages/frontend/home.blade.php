@@ -459,6 +459,35 @@
                 </div>
                 <!-- Modal body -->
                 <form id="checkout-form" class="p-4 md:p-5 space-y-4">
+                    <!-- Переключатель типа доставки -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Тип получения <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex gap-4">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="radio" 
+                                    name="delivery_type" 
+                                    value="pickup" 
+                                    id="delivery_type_pickup"
+                                    checked
+                                    class="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                >
+                                <span class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Самовывоз</span>
+                            </label>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="radio" 
+                                    name="delivery_type" 
+                                    value="delivery" 
+                                    id="delivery_type_delivery"
+                                    class="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                >
+                                <span class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Доставка</span>
+                            </label>
+                        </div>
+                    </div>
                     <div>
                         <label for="customer_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Имя <span class="text-red-500">*</span>
@@ -485,16 +514,16 @@
                             placeholder="+7 (999) 123-45-67"
                         >
                     </div>
-                    <div>
+                    <div id="address-field-container" class="hidden">
                         <label for="customer_address" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Адрес доставки
+                            Адрес доставки <span class="text-red-500">*</span>
                         </label>
                         <textarea 
                             id="customer_address" 
                             name="customer_address" 
                             rows="3"
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
-                            placeholder="Введите адрес доставки (необязательно)"
+                            placeholder="Введите адрес доставки"
                         ></textarea>
                     </div>
                     <div id="checkout-error" class="hidden text-red-600 dark:text-red-400 text-sm"></div>
@@ -1569,6 +1598,43 @@
 
             // Управление aria-hidden при ручном открытии/закрытии (fallback)
 
+            // Обработчик переключения типа доставки
+            const deliveryTypePickup = document.getElementById('delivery_type_pickup');
+            const deliveryTypeDelivery = document.getElementById('delivery_type_delivery');
+            const addressFieldContainer = document.getElementById('address-field-container');
+            const customerAddressField = document.getElementById('customer_address');
+
+            function updateAddressFieldVisibility() {
+                if (deliveryTypeDelivery && deliveryTypeDelivery.checked) {
+                    // Доставка - показываем поле адреса и делаем его обязательным
+                    if (addressFieldContainer) {
+                        addressFieldContainer.classList.remove('hidden');
+                    }
+                    if (customerAddressField) {
+                        customerAddressField.setAttribute('required', 'required');
+                    }
+                } else {
+                    // Самовывоз - скрываем поле адреса и убираем обязательность
+                    if (addressFieldContainer) {
+                        addressFieldContainer.classList.add('hidden');
+                    }
+                    if (customerAddressField) {
+                        customerAddressField.removeAttribute('required');
+                        customerAddressField.value = ''; // Очищаем значение при переключении на самовывоз
+                    }
+                }
+            }
+
+            if (deliveryTypePickup) {
+                deliveryTypePickup.addEventListener('change', updateAddressFieldVisibility);
+            }
+            if (deliveryTypeDelivery) {
+                deliveryTypeDelivery.addEventListener('change', updateAddressFieldVisibility);
+            }
+
+            // Инициализируем видимость поля адреса при загрузке
+            updateAddressFieldVisibility();
+
             // Обработчик формы оформления заказа
             const checkoutForm = document.getElementById('checkout-form');
             if (checkoutForm) {
@@ -1579,7 +1645,17 @@
                     const errorDiv = document.getElementById('checkout-error');
                     const customerName = document.getElementById('customer_name').value;
                     const customerPhone = document.getElementById('customer_phone').value;
-                    const customerAddress = document.getElementById('customer_address').value;
+                    const deliveryType = document.querySelector('input[name="delivery_type"]:checked')?.value || 'pickup';
+                    const customerAddress = customerAddressField?.value || '';
+
+                    // Валидация адреса для доставки
+                    if (deliveryType === 'delivery' && !customerAddress.trim()) {
+                        errorDiv.textContent = 'Адрес доставки обязателен для заполнения';
+                        errorDiv.classList.remove('hidden');
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Подтвердить заказ';
+                        return;
+                    }
 
                     if (cart.length === 0) {
                         errorDiv.textContent = 'Корзина пуста';
@@ -1595,7 +1671,8 @@
                         const orderData = {
                             customer_name: customerName,
                             customer_phone: customerPhone,
-                            customer_address: customerAddress || null,
+                            customer_address: deliveryType === 'delivery' ? customerAddress : null,
+                            delivery_type: deliveryType,
                             items: cart.map(item => {
                                 const orderItem = {
                                     dish_name: item.name,

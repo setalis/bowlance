@@ -126,6 +126,7 @@ class OrderController extends Controller
             'customer_name' => $data['customer_name'],
             'customer_phone' => $data['customer_phone'],
             'customer_address' => $data['customer_address'] ?? null,
+            'delivery_type' => $data['delivery_type'] ?? 'pickup',
             'status' => 'pending_verification',
             'total' => $total,
         ]);

@@ -35,6 +35,7 @@
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">ID</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Клиент</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Телефон</th>
+                                <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Тип получения</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Товары</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Сумма</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Статус</th>
@@ -47,6 +48,16 @@
                                     <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">#{{ $order->id }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">{{ $order->customer_name }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->customer_phone }}</td>
+                                    <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                        @if(($order->delivery_type ?? 'pickup') === 'delivery')
+                                            <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-300">Доставка</span>
+                                            @if($order->customer_address)
+                                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $order->customer_address }}</div>
+                                            @endif
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-300">Самовывоз</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
                                         <div class="space-y-2">
                                             @foreach($order->items as $item)
@@ -160,6 +171,7 @@
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">ID</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Клиент</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Телефон</th>
+                                <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Тип получения</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Товары</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Сумма</th>
                                 <th class="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white/90">Дата выполнения</th>
@@ -172,6 +184,16 @@
                                     <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">#{{ $order->id }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-800 dark:text-white/90">{{ $order->customer_name }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->customer_phone }}</td>
+                                    <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                        @if(($order->delivery_type ?? 'pickup') === 'delivery')
+                                            <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-300">Доставка</span>
+                                            @if($order->customer_address)
+                                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $order->customer_address }}</div>
+                                            @endif
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-300">Самовывоз</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
                                         <div class="space-y-2">
                                             @foreach($order->items as $item)

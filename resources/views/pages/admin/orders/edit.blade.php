@@ -64,6 +64,37 @@
                         @enderror
                     </div>
 
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Тип получения <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex gap-4">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="delivery_type"
+                                    value="pickup"
+                                    {{ old('delivery_type', $order->delivery_type ?? 'pickup') === 'pickup' ? 'checked' : '' }}
+                                    class="w-4 h-4 text-brand-500 bg-gray-100 border-gray-300 focus:ring-brand-500 dark:focus:ring-brand-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                >
+                                <span class="ms-2 text-sm font-medium text-gray-700 dark:text-gray-300">Самовывоз</span>
+                            </label>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="delivery_type"
+                                    value="delivery"
+                                    {{ old('delivery_type', $order->delivery_type ?? 'pickup') === 'delivery' ? 'checked' : '' }}
+                                    class="w-4 h-4 text-brand-500 bg-gray-100 border-gray-300 focus:ring-brand-500 dark:focus:ring-brand-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                >
+                                <span class="ms-2 text-sm font-medium text-gray-700 dark:text-gray-300">Доставка</span>
+                            </label>
+                        </div>
+                        @error('delivery_type')
+                            <p class="mt-1.5 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <div class="md:col-span-2">
                         <label for="customer_address" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Адрес доставки

@@ -21,10 +21,10 @@ class UpdateOrderRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'customer_name' => ['sometimes', 'required', 'string', 'max:255'],
             'customer_phone' => ['sometimes', 'required', 'string', 'max:255'],
-            'customer_address' => ['nullable', 'string'],
+            'delivery_type' => ['sometimes', 'required', 'string', 'in:pickup,delivery'],
             'status' => ['required', 'string', 'in:new,preparing,delivering,completed'],
             'items' => ['sometimes', 'array', 'min:1'],
             'items.*.dish_id' => ['required_with:items', 'integer', 'exists:dishes,id'],
@@ -32,6 +32,15 @@ class UpdateOrderRequest extends FormRequest
             'items.*.price' => ['required_with:items', 'numeric', 'min:0'],
             'items.*.quantity' => ['required_with:items', 'integer', 'min:1'],
         ];
+
+        // Если выбрана доставка, адрес обязателен
+        if ($this->input('delivery_type') === 'delivery') {
+            $rules['customer_address'] = ['sometimes', 'required', 'string'];
+        } else {
+            $rules['customer_address'] = ['nullable', 'string'];
+        }
+
+        return $rules;
     }
 
     public function messages(): array
@@ -39,6 +48,9 @@ class UpdateOrderRequest extends FormRequest
         return [
             'customer_name.required' => 'Имя клиента обязательно для заполнения.',
             'customer_phone.required' => 'Телефон клиента обязателен для заполнения.',
+            'delivery_type.required' => 'Необходимо выбрать тип получения заказа.',
+            'delivery_type.in' => 'Тип получения заказа должен быть самовывоз или доставка.',
+            'customer_address.required' => 'Адрес доставки обязателен для заполнения при выборе доставки.',
             'status.required' => 'Статус заказа обязателен для заполнения.',
             'status.in' => 'Недопустимый статус заказа.',
             'items.min' => 'Необходимо добавить хотя бы один товар в заказ.',

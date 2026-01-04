@@ -21,10 +21,10 @@ class StoreOrderRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_phone' => ['required', 'string', 'max:255'],
-            'customer_address' => ['nullable', 'string'],
+            'delivery_type' => ['required', 'string', 'in:pickup,delivery'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.dish_id' => ['nullable', 'integer', 'exists:dishes,id'],
             'items.*.dish_name' => ['required', 'string', 'max:255'],
@@ -34,6 +34,15 @@ class StoreOrderRequest extends FormRequest
             'items.*.constructor_data.type' => ['nullable', 'string', 'in:constructor'],
             'items.*.constructor_data.categories' => ['nullable', 'array'],
         ];
+
+        // Если выбрана доставка, адрес обязателен
+        if ($this->input('delivery_type') === 'delivery') {
+            $rules['customer_address'] = ['required', 'string'];
+        } else {
+            $rules['customer_address'] = ['nullable', 'string'];
+        }
+
+        return $rules;
     }
 
     public function messages(): array
@@ -41,6 +50,9 @@ class StoreOrderRequest extends FormRequest
         return [
             'customer_name.required' => 'Имя клиента обязательно для заполнения.',
             'customer_phone.required' => 'Телефон клиента обязателен для заполнения.',
+            'delivery_type.required' => 'Необходимо выбрать тип получения заказа.',
+            'delivery_type.in' => 'Тип получения заказа должен быть самовывоз или доставка.',
+            'customer_address.required' => 'Адрес доставки обязателен для заполнения при выборе доставки.',
             'items.required' => 'Необходимо добавить хотя бы один товар в заказ.',
             'items.min' => 'Необходимо добавить хотя бы один товар в заказ.',
         ];
