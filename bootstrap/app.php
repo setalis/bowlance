@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/telegram/webhook',
             'api/phone/verification/check-status',
         ]);
+
+        // Добавляем middleware для обновления истекших сессий
+        $middleware->web(append: [
+            \App\Http\Middleware\RefreshExpiredSession::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

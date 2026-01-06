@@ -80,7 +80,12 @@ Route::get('/api/constructor/categories', function () {
     ]);
 })->name('api.constructor.categories');
 
-Route::get('/api/csrf-token', function () {
+Route::get('/api/csrf-token', function (\Illuminate\Http\Request $request) {
+    // Если сессия истекла или отсутствует, создаем новую
+    if (! $request->hasSession() || ! $request->session()->has('_token')) {
+        $request->session()->regenerate();
+    }
+
     return response()->json(['token' => csrf_token()]);
 })->name('api.csrf-token');
 
