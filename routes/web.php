@@ -80,6 +80,10 @@ Route::get('/api/constructor/categories', function () {
     ]);
 })->name('api.constructor.categories');
 
+Route::get('/api/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->name('api.csrf-token');
+
 Route::post('/api/orders', [OrderController::class, 'store'])->name('api.orders.store');
 
 Route::post('/api/phone/verification/start', [PhoneVerificationController::class, 'start'])->name('api.phone.verification.start');
