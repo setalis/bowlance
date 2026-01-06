@@ -67,7 +67,29 @@ class OrderController extends Controller
                 // Проверяем, не существует ли уже пользователь с таким email
                 $existingUser = User::where('email', $email)->first();
                 if ($existingUser) {
-                    // Если пользователь существует, обновляем телефон и генерируем токен, если его нет
+                    // Если пользователь существует, проверяем, не используется ли телефон другим пользователем
+                    $existingUserWithPhone = User::where('phone', $data['customer_phone'])
+                        ->where('id', '!=', $existingUser->id)
+                        ->first();
+
+                    if ($existingUserWithPhone) {
+                        // Если телефон уже используется другим пользователем, возвращаем ошибку
+                        if ($request->expectsJson()) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Пользователь с таким номером телефона уже зарегистрирован. Пожалуйста, войдите в систему под этим номером.',
+                                'errors' => [
+                                    'customer_phone' => ['Пользователь с таким номером телефона уже зарегистрирован. Пожалуйста, войдите в систему под этим номером.'],
+                                ],
+                            ], 422);
+                        }
+
+                        return redirect()->back()
+                            ->withErrors(['customer_phone' => 'Пользователь с таким номером телефона уже зарегистрирован. Пожалуйста, войдите в систему под этим номером.'])
+                            ->withInput();
+                    }
+
+                    // Если телефон не занят, обновляем телефон и генерируем токен, если его нет
                     $updateData = ['phone' => $data['customer_phone']];
                     if (! $existingUser->login_token) {
                         $updateData['login_token'] = bin2hex(random_bytes(32));
@@ -103,17 +125,38 @@ class OrderController extends Controller
             // Автоматически авторизуем пользователя
             Auth::login($user);
         } else {
-            // Если пользователь авторизован, обновляем его данные, если они изменились
-            $updateData = [];
-            if ($user->name !== $data['customer_name']) {
-                $updateData['name'] = $data['customer_name'];
+            // Если пользователь авторизован, НЕ обновляем его данные из заказа
+            // Имя и телефон в заказе могут отличаться от данных пользователя
+            // (например, заказ на другое имя или другой телефон для доставки)
+            // Обновляем только телефон, если он изменился и пользователь не имеет роли администратора
+            // (администраторы могут иметь другой телефон в системе)
+            if (! $user->isAdmin() && $user->phone !== $data['customer_phone']) {
+                // Проверяем, не используется ли этот телефон другим пользователем
+                $existingUserWithPhone = User::where('phone', $data['customer_phone'])
+                    ->where('id', '!=', $user->id)
+                    ->first();
+
+                if ($existingUserWithPhone) {
+                    // Если телефон уже используется другим пользователем, возвращаем ошибку
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Пользователь с таким номером телефона уже зарегистрирован. Пожалуйста, войдите в систему под этим номером.',
+                            'errors' => [
+                                'customer_phone' => ['Пользователь с таким номером телефона уже зарегистрирован. Пожалуйста, войдите в систему под этим номером.'],
+                            ],
+                        ], 422);
+                    }
+
+                    return redirect()->back()
+                        ->withErrors(['customer_phone' => 'Пользователь с таким номером телефона уже зарегистрирован. Пожалуйста, войдите в систему под этим номером.'])
+                        ->withInput();
+                }
+
+                // Обновляем телефон только для обычных пользователей, если он не занят
+                $user->update(['phone' => $data['customer_phone']]);
             }
-            if ($user->phone !== $data['customer_phone']) {
-                $updateData['phone'] = $data['customer_phone'];
-            }
-            if (! empty($updateData)) {
-                $user->update($updateData);
-            }
+            // Имя пользователя НЕ обновляется из заказа - оно остается в профиле пользователя
         }
 
         $total = 0;

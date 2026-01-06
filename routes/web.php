@@ -102,13 +102,13 @@ Route::post('/api/login/verification/verify', [App\Http\Controllers\Auth\LoginVe
 
 Route::get('/dashboard', function () {
     return view('dashboard', ['title' => 'Dashboard']);
-})->middleware(['auth'])->name('dashboard');
+})->middleware(['auth', \App\Http\Middleware\EnsureUserIsAdmin::class])->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/account', [AccountController::class, 'index'])->name('account.index');
 });
 
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\EnsureUserIsAdmin::class])->prefix('admin')->name('admin.')->group(function () {
     // Route::resource('restaurants', RestaurantController::class);
     Route::get('/icons', [IconPreviewController::class, 'index'])->name('icons.preview');
 });

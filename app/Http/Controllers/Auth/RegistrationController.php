@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -31,9 +33,15 @@ class RegistrationController extends Controller
 
         event(new Registered(($user = User::create($validated))));
 
+        // Назначаем роль CUSTOMER новому пользователю
+        $customerRole = Role::where('name', RoleName::CUSTOMER->value)->first();
+        if ($customerRole && ! $user->hasRole(RoleName::CUSTOMER)) {
+            $user->roles()->attach($customerRole);
+        }
+
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // Перенаправляем обычных пользователей в личный кабинет, а не на dashboard
+        return redirect(route('account.index', absolute: false));
     }
 }
-
