@@ -1618,8 +1618,10 @@
                                     if (closeBtn) {
                                         closeBtn.onclick = function() {
                                             modal.classList.add('hidden');
-                                            // Убираем параметр return из URL
-                                            const newUrl = window.location.pathname + window.location.search.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                                            // Правильно убираем параметр return из URL
+                                            const url = new URL(window.location.href);
+                                            url.searchParams.delete('return');
+                                            const newUrl = url.search ? url.pathname + url.search : url.pathname;
                                             window.history.replaceState({}, '', newUrl || window.location.pathname);
                                         };
                                     }
@@ -1658,8 +1660,10 @@
                                     if (closeBtn) {
                                         closeBtn.onclick = function() {
                                             modal.classList.add('hidden');
-                                            // Убираем параметр return из URL
-                                            const newUrl = window.location.pathname + window.location.search.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                                            // Правильно убираем параметр return из URL
+                                            const url = new URL(window.location.href);
+                                            url.searchParams.delete('return');
+                                            const newUrl = url.search ? url.pathname + url.search : url.pathname;
                                             window.history.replaceState({}, '', newUrl || window.location.pathname);
                                         };
                                     }
@@ -1669,9 +1673,13 @@
                                 const openBrowserBtn = document.getElementById('telegram-open-browser-btn');
                                 if (openBrowserBtn) {
                                     openBrowserBtn.onclick = function() {
-                                        const currentUrl = window.location.href.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                                        // Правильно формируем URL без параметра return=true
+                                        const url = new URL(window.location.href);
+                                        url.searchParams.delete('return');
+                                        // Если остались параметры, используем их, иначе просто pathname
+                                        const cleanUrl = url.search ? url.pathname + url.search : url.pathname;
                                         // Пытаемся открыть в обычном браузере
-                                        window.open(currentUrl, '_blank');
+                                        window.open(cleanUrl, '_blank');
                                     };
                                 }
                             } catch (error) {
@@ -1708,7 +1716,10 @@
                                 if (closeBtn) {
                                     closeBtn.onclick = function() {
                                         modal.classList.add('hidden');
-                                        const newUrl = window.location.pathname + window.location.search.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                                        // Правильно убираем параметр return из URL
+                                        const url = new URL(window.location.href);
+                                        url.searchParams.delete('return');
+                                        const newUrl = url.search ? url.pathname + url.search : url.pathname;
                                         window.history.replaceState({}, '', newUrl || window.location.pathname);
                                     };
                                 }
