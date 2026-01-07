@@ -1509,29 +1509,44 @@
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('return') === 'true') {
+                console.log('Обнаружен параметр return=true, начинаю обработку...');
                 const isTelegram = isTelegramWebView();
                 const savedUrl = localStorage.getItem('verificationReturnUrl');
-                const currentOrderId = localStorage.getItem('currentVerificationOrderId');
+                // Получаем orderId из URL или localStorage
+                const orderIdFromUrl = urlParams.get('order_id');
+                const currentOrderId = orderIdFromUrl || localStorage.getItem('currentVerificationOrderId');
                 
-                // Если открыто во встроенном браузере Telegram, показываем модальное окно и баннер
-                if (isTelegram && currentOrderId) {
+                console.log('Параметры:', {
+                    isTelegram: isTelegram,
+                    orderIdFromUrl: orderIdFromUrl,
+                    currentOrderId: currentOrderId,
+                    savedUrl: savedUrl
+                });
+                
+                // ВСЕГДА показываем баннер при return=true, даже если нет orderId
+                const banner = document.getElementById('telegram-status-banner');
+                const bannerIcon = document.getElementById('telegram-status-icon');
+                const bannerText = document.getElementById('telegram-status-text');
+                const bannerClose = document.getElementById('telegram-status-close');
+                
+                if (banner) {
+                    console.log('Показываю баннер уведомления...');
+                    banner.classList.remove('hidden');
+                    document.body.style.paddingTop = banner.offsetHeight + 'px';
+                }
+                
+                // ВСЕГДА показываем баннер и модальное окно при return=true
+                // Это гарантирует, что пользователь увидит статус независимо от браузера
+                if (currentOrderId) {
+                    // Сохраняем orderId в localStorage, если его там еще нет
+                    if (!localStorage.getItem('currentVerificationOrderId') && orderIdFromUrl) {
+                        localStorage.setItem('currentVerificationOrderId', orderIdFromUrl);
+                    }
                     const modal = document.getElementById('telegram-return-modal');
                     const loadingDiv = document.getElementById('telegram-return-loading');
                     const successDiv = document.getElementById('telegram-return-success');
                     const errorDiv = document.getElementById('telegram-return-error');
                     const openBrowserDiv = document.getElementById('telegram-return-open-browser');
-                    
-                    // Показываем баннер уведомления на странице (всегда видимый)
-                    const banner = document.getElementById('telegram-status-banner');
-                    const bannerIcon = document.getElementById('telegram-status-icon');
-                    const bannerText = document.getElementById('telegram-status-text');
-                    const bannerClose = document.getElementById('telegram-status-close');
-                    
-                    if (banner) {
-                        banner.classList.remove('hidden');
-                        // Добавляем отступ для контента страницы, чтобы баннер не перекрывал его
-                        document.body.style.paddingTop = banner.offsetHeight + 'px';
-                    }
                     
                     if (modal) {
                         // Показываем модальное окно
@@ -1557,14 +1572,18 @@
                                 
                                 loadingDiv.classList.add('hidden');
                                 
+                                console.log('Статус верификации получен:', statusData);
+                                
                                 if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
                                     // Верификация успешна
+                                    console.log('Верификация успешна!');
                                     successDiv.classList.remove('hidden');
                                     openBrowserDiv.classList.remove('hidden');
                                     
                                     // Обновляем баннер с успешным сообщением
                                     if (banner && bannerIcon && bannerText && bannerClose) {
                                         banner.classList.remove('hidden');
+                                        banner.classList.remove('bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500', 'bg-red-50', 'dark:bg-red-900', 'border-red-500');
                                         banner.classList.add('bg-green-50', 'dark:bg-green-900', 'border-green-500');
                                         bannerIcon.innerHTML = `
                                             <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1572,7 +1591,7 @@
                                             </svg>
                                         `;
                                         bannerText.textContent = '✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.';
-                                        bannerText.classList.remove('text-gray-900', 'dark:text-white');
+                                        bannerText.classList.remove('text-gray-900', 'dark:text-white', 'text-yellow-800', 'dark:text-yellow-100', 'text-red-800', 'dark:text-red-100');
                                         bannerText.classList.add('text-green-800', 'dark:text-green-100');
                                         bannerClose.style.display = 'block';
                                         bannerClose.onclick = function() {
@@ -1606,6 +1625,7 @@
                                     }
                                 } else {
                                     // Верификация не завершена или ошибка
+                                    console.log('Верификация еще не завершена или ошибка');
                                     errorDiv.classList.remove('hidden');
                                     openBrowserDiv.classList.remove('hidden');
                                     const errorMessage = document.getElementById('telegram-return-error-message');
@@ -1616,6 +1636,7 @@
                                     // Обновляем баннер с сообщением об ошибке
                                     if (banner && bannerIcon && bannerText && bannerClose) {
                                         banner.classList.remove('hidden');
+                                        banner.classList.remove('bg-green-50', 'dark:bg-green-900', 'border-green-500', 'bg-red-50', 'dark:bg-red-900', 'border-red-500');
                                         banner.classList.add('bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500');
                                         bannerIcon.innerHTML = `
                                             <svg class="h-6 w-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1623,7 +1644,7 @@
                                             </svg>
                                         `;
                                         bannerText.textContent = '⚠️ Верификация еще не завершена. Завершите процесс подтверждения в Telegram боте.';
-                                        bannerText.classList.remove('text-gray-900', 'dark:text-white');
+                                        bannerText.classList.remove('text-gray-900', 'dark:text-white', 'text-green-800', 'dark:text-green-100', 'text-red-800', 'dark:text-red-100');
                                         bannerText.classList.add('text-yellow-800', 'dark:text-yellow-100');
                                         bannerClose.style.display = 'block';
                                         bannerClose.onclick = function() {
@@ -1666,6 +1687,7 @@
                                 // Обновляем баннер с сообщением об ошибке
                                 if (banner && bannerIcon && bannerText && bannerClose) {
                                     banner.classList.remove('hidden');
+                                    banner.classList.remove('bg-green-50', 'dark:bg-green-900', 'border-green-500', 'bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500');
                                     banner.classList.add('bg-red-50', 'dark:bg-red-900', 'border-red-500');
                                     bannerIcon.innerHTML = `
                                         <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1673,7 +1695,7 @@
                                         </svg>
                                     `;
                                     bannerText.textContent = '❌ Ошибка при проверке статуса заказа. Попробуйте позже.';
-                                    bannerText.classList.remove('text-gray-900', 'dark:text-white');
+                                    bannerText.classList.remove('text-gray-900', 'dark:text-white', 'text-green-800', 'dark:text-green-100', 'text-yellow-800', 'dark:text-yellow-100');
                                     bannerText.classList.add('text-red-800', 'dark:text-red-100');
                                     bannerClose.style.display = 'block';
                                     bannerClose.onclick = function() {
@@ -1695,8 +1717,43 @@
                         
                         // Запускаем проверку статуса
                         checkVerificationStatus();
+                    } else {
+                        console.error('Модальное окно не найдено!');
+                        // Если модальное окно не найдено, показываем только баннер с сообщением
+                        if (banner && bannerIcon && bannerText && bannerClose) {
+                            banner.classList.remove('hidden');
+                            banner.classList.add('bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500');
+                            bannerIcon.innerHTML = `
+                                <svg class="animate-spin h-6 w-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            `;
+                            bannerText.textContent = 'Проверка статуса заказа...';
+                            bannerClose.style.display = 'none';
+                        }
                     }
                     return;
+                } else {
+                    console.log('OrderId не найден, но показываю баннер с информацией');
+                    // Даже если нет orderId, показываем баннер с информацией
+                    if (banner && bannerIcon && bannerText && bannerClose) {
+                        banner.classList.remove('hidden');
+                        banner.classList.add('bg-blue-50', 'dark:bg-blue-900', 'border-blue-500');
+                        bannerIcon.innerHTML = `
+                            <svg class="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        `;
+                        bannerText.textContent = 'Вы вернулись с верификации. Проверьте статус заказа в личном кабинете.';
+                        bannerText.classList.remove('text-gray-900', 'dark:text-white');
+                        bannerText.classList.add('text-blue-800', 'dark:text-blue-100');
+                        bannerClose.style.display = 'block';
+                        bannerClose.onclick = function() {
+                            banner.classList.add('hidden');
+                            document.body.style.paddingTop = '0';
+                        };
+                    }
                 }
                 
                 // Для обычных браузеров - стандартная логика

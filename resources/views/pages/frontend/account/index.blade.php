@@ -434,27 +434,42 @@ function isTelegramWebView() {
     if (urlParams.get('return') === 'true') {
         const isTelegram = isTelegramWebView();
         const savedUrl = localStorage.getItem('verificationReturnUrl');
-        const currentOrderId = localStorage.getItem('currentVerificationOrderId');
+        // Получаем orderId из URL или localStorage
+        const orderIdFromUrl = urlParams.get('order_id');
+        const currentOrderId = orderIdFromUrl || localStorage.getItem('currentVerificationOrderId');
         
-        // Если открыто во встроенном браузере Telegram, показываем модальное окно и баннер
-        if (isTelegram && currentOrderId) {
+        console.log('Обнаружен параметр return=true, начинаю обработку...');
+        console.log('Параметры:', {
+            isTelegram: isTelegram,
+            orderIdFromUrl: orderIdFromUrl,
+            currentOrderId: currentOrderId,
+            savedUrl: savedUrl
+        });
+        
+        // ВСЕГДА показываем баннер при return=true, даже если нет orderId
+        const banner = document.getElementById('telegram-status-banner');
+        const bannerIcon = document.getElementById('telegram-status-icon');
+        const bannerText = document.getElementById('telegram-status-text');
+        const bannerClose = document.getElementById('telegram-status-close');
+        
+        if (banner) {
+            console.log('Показываю баннер уведомления...');
+            banner.classList.remove('hidden');
+            document.body.style.paddingTop = banner.offsetHeight + 'px';
+        }
+        
+        // ВСЕГДА показываем баннер и модальное окно при return=true
+        // Это гарантирует, что пользователь увидит статус независимо от браузера
+        if (currentOrderId) {
+            // Сохраняем orderId в localStorage, если его там еще нет
+            if (!localStorage.getItem('currentVerificationOrderId') && orderIdFromUrl) {
+                localStorage.setItem('currentVerificationOrderId', orderIdFromUrl);
+            }
             const modal = document.getElementById('telegram-return-modal');
             const loadingDiv = document.getElementById('telegram-return-loading');
             const successDiv = document.getElementById('telegram-return-success');
             const errorDiv = document.getElementById('telegram-return-error');
             const openBrowserDiv = document.getElementById('telegram-return-open-browser-account');
-            
-            // Показываем баннер уведомления на странице (всегда видимый)
-            const banner = document.getElementById('telegram-status-banner');
-            const bannerIcon = document.getElementById('telegram-status-icon');
-            const bannerText = document.getElementById('telegram-status-text');
-            const bannerClose = document.getElementById('telegram-status-close');
-            
-            if (banner) {
-                banner.classList.remove('hidden');
-                // Добавляем отступ для контента страницы, чтобы баннер не перекрывал его
-                document.body.style.paddingTop = banner.offsetHeight + 'px';
-            }
             
             if (modal) {
                 // Показываем модальное окно

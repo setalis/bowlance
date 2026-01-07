@@ -138,7 +138,7 @@ class TelegramVerificationService
         }
     }
 
-    public function sendPhoneVerifiedSuccess(string $chatId, string $phone, ?string $returnUrl = null): bool
+    public function sendPhoneVerifiedSuccess(string $chatId, string $phone, ?string $returnUrl = null, ?int $orderId = null): bool
     {
         $botToken = config('verification.telegram.bot_token');
 
@@ -149,7 +149,14 @@ class TelegramVerificationService
         }
 
         $appUrl = $returnUrl ?? config('app.url');
-        $message = "✅ <b>Номер успешно подтвержден!</b>\n\nТелефон: {$phone}\n\nВаш заказ подтвержден и принят в обработку. Нажмите кнопку ниже, чтобы вернуться на сайт.";
+
+        // Формируем более информативное сообщение
+        $orderInfo = '';
+        if ($orderId) {
+            $orderInfo = "\n\n📦 <b>Заказ #{$orderId}</b>";
+        }
+
+        $message = "✅ <b>Номер успешно подтвержден!</b>\n\nТелефон: {$phone}{$orderInfo}\n\nВаш заказ подтвержден и принят в обработку.\n\n💡 <i>Если вы открыли сайт в Telegram, нажмите кнопку ниже для возврата. Статус заказа будет показан на странице.</i>";
 
         $replyMarkup = null;
         if ($appUrl) {
