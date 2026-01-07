@@ -638,13 +638,28 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400 text-center mb-3">
                             Для лучшего опыта откройте эту страницу в обычном браузере
                         </p>
-                        <button 
-                            type="button" 
-                            id="telegram-open-browser-btn"
-                            class="w-full text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:focus:ring-gray-600"
-                        >
-                            Открыть в браузере
-                        </button>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                                <input 
+                                    type="text" 
+                                    id="telegram-browser-url"
+                                    readonly
+                                    class="flex-1 text-xs bg-transparent border-none text-gray-700 dark:text-gray-300 focus:outline-none"
+                                    value=""
+                                />
+                                <button 
+                                    type="button" 
+                                    id="telegram-copy-url-btn"
+                                    class="px-3 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                    title="Копировать ссылку"
+                                >
+                                    📋 Копировать
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                Скопируйте ссылку и откройте её в обычном браузере (Chrome, Safari и т.д.)
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1508,6 +1523,134 @@
         // Обработка возврата на ту же страницу после верификации
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
+            const orderIdFromUrl = urlParams.get('order_id');
+            
+            // Если есть order_id в URL, проверяем статус заказа
+            if (orderIdFromUrl) {
+                console.log('Обнаружен order_id в URL:', orderIdFromUrl);
+                // Сохраняем orderId в localStorage
+                if (!localStorage.getItem('currentVerificationOrderId')) {
+                    localStorage.setItem('currentVerificationOrderId', orderIdFromUrl);
+                }
+                
+                // Показываем баннер и проверяем статус
+                const banner = document.getElementById('telegram-status-banner');
+                const bannerIcon = document.getElementById('telegram-status-icon');
+                const bannerText = document.getElementById('telegram-status-text');
+                const bannerClose = document.getElementById('telegram-status-close');
+                
+                if (banner) {
+                    console.log('Показываю баннер уведомления...');
+                    banner.classList.remove('hidden');
+                    document.body.style.paddingTop = banner.offsetHeight + 'px';
+                }
+                
+                // Проверяем статус заказа
+                async function checkOrderStatus() {
+                    try {
+                        const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${orderIdFromUrl}`, {
+                            headers: {
+                                'Accept': 'application/json',
+                            },
+                        });
+                        
+                        if (!checkResponse.ok) {
+                            throw new Error('Ошибка проверки статуса');
+                        }
+                        
+                        const statusData = await checkResponse.json();
+                        console.log('Статус заказа получен:', statusData);
+                        
+                        if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
+                            // Верификация успешна
+                            console.log('Верификация успешна!');
+                            if (banner && bannerIcon && bannerText && bannerClose) {
+                                banner.classList.remove('hidden');
+                                banner.classList.remove('bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500', 'bg-red-50', 'dark:bg-red-900', 'border-red-500');
+                                banner.classList.add('bg-green-50', 'dark:bg-green-900', 'border-green-500');
+                                bannerIcon.innerHTML = `
+                                    <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                `;
+                                bannerText.textContent = '✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.';
+                                bannerText.classList.remove('text-gray-900', 'dark:text-white', 'text-yellow-800', 'dark:text-yellow-100', 'text-red-800', 'dark:text-red-100');
+                                bannerText.classList.add('text-green-800', 'dark:text-green-100');
+                                bannerClose.style.display = 'block';
+                                bannerClose.onclick = function() {
+                                    banner.classList.add('hidden');
+                                    document.body.style.paddingTop = '0';
+                                    // Убираем order_id из URL
+                                    const url = new URL(window.location.href);
+                                    url.searchParams.delete('order_id');
+                                    window.history.replaceState({}, '', url.toString());
+                                };
+                            }
+                            
+                            // Очищаем корзину и данные
+                            cart = [];
+                            saveCart();
+                            updateCartDisplay();
+                            
+                            // Очищаем все флаги верификации
+                            localStorage.removeItem('pendingVerificationCheck');
+                            localStorage.removeItem('currentVerificationOrderId');
+                            localStorage.removeItem('verificationInProgress');
+                            localStorage.removeItem('verificationStartedAt');
+                            localStorage.removeItem('pendingVerificationSuccess');
+                            localStorage.removeItem('verificationReturnUrl');
+                            
+                            // Показываем уведомление
+                            showNotification('✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.', 'success');
+                        } else {
+                            // Верификация еще не завершена
+                            console.log('Верификация еще не завершена');
+                            if (banner && bannerIcon && bannerText && bannerClose) {
+                                banner.classList.remove('hidden');
+                                banner.classList.remove('bg-green-50', 'dark:bg-green-900', 'border-green-500', 'bg-red-50', 'dark:bg-red-900', 'border-red-500');
+                                banner.classList.add('bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500');
+                                bannerIcon.innerHTML = `
+                                    <svg class="h-6 w-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                `;
+                                bannerText.textContent = '⚠️ Верификация еще не завершена. Завершите процесс подтверждения в Telegram боте.';
+                                bannerText.classList.remove('text-gray-900', 'dark:text-white', 'text-green-800', 'dark:text-green-100', 'text-red-800', 'dark:text-red-100');
+                                bannerText.classList.add('text-yellow-800', 'dark:text-yellow-100');
+                                bannerClose.style.display = 'block';
+                                bannerClose.onclick = function() {
+                                    banner.classList.add('hidden');
+                                    document.body.style.paddingTop = '0';
+                                };
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Ошибка проверки статуса:', error);
+                        if (banner && bannerIcon && bannerText && bannerClose) {
+                            banner.classList.remove('hidden');
+                            banner.classList.remove('bg-green-50', 'dark:bg-green-900', 'border-green-500', 'bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500');
+                            banner.classList.add('bg-red-50', 'dark:bg-red-900', 'border-red-500');
+                            bannerIcon.innerHTML = `
+                                <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            `;
+                            bannerText.textContent = '❌ Ошибка при проверке статуса заказа. Попробуйте позже.';
+                            bannerText.classList.remove('text-gray-900', 'dark:text-white', 'text-green-800', 'dark:text-green-100', 'text-yellow-800', 'dark:text-yellow-100');
+                            bannerText.classList.add('text-red-800', 'dark:text-red-100');
+                            bannerClose.style.display = 'block';
+                            bannerClose.onclick = function() {
+                                banner.classList.add('hidden');
+                                document.body.style.paddingTop = '0';
+                            };
+                        }
+                    }
+                }
+                
+                // Запускаем проверку статуса
+                checkOrderStatus();
+            }
+            
             if (urlParams.get('return') === 'true') {
                 console.log('Обнаружен параметр return=true, начинаю обработку...');
                 const isTelegram = isTelegramWebView();
@@ -1669,17 +1812,50 @@
                                     }
                                 }
                                 
-                                // Обработчик кнопки "Открыть в браузере"
-                                const openBrowserBtn = document.getElementById('telegram-open-browser-btn');
-                                if (openBrowserBtn) {
-                                    openBrowserBtn.onclick = function() {
-                                        // Правильно формируем URL без параметра return=true
-                                        const url = new URL(window.location.href);
-                                        url.searchParams.delete('return');
-                                        // Если остались параметры, используем их, иначе просто pathname
-                                        const cleanUrl = url.search ? url.pathname + url.search : url.pathname;
-                                        // Пытаемся открыть в обычном браузере
-                                        window.open(cleanUrl, '_blank');
+                                // Настройка ссылки для копирования
+                                const browserUrlInput = document.getElementById('telegram-browser-url');
+                                const copyUrlBtn = document.getElementById('telegram-copy-url-btn');
+                                const openBrowserDiv = document.getElementById('telegram-return-open-browser');
+                                
+                                if (openBrowserDiv && browserUrlInput) {
+                                    // Формируем полный URL без параметра return
+                                    const url = new URL(window.location.href);
+                                    url.searchParams.delete('return');
+                                    const cleanUrl = url.toString();
+                                    
+                                    // Устанавливаем значение в input
+                                    browserUrlInput.value = cleanUrl;
+                                    
+                                    // Обработчик кнопки копирования
+                                    if (copyUrlBtn) {
+                                        copyUrlBtn.onclick = function() {
+                                            browserUrlInput.select();
+                                            browserUrlInput.setSelectionRange(0, 99999); // Для мобильных устройств
+                                            
+                                            try {
+                                                document.execCommand('copy');
+                                                const originalText = copyUrlBtn.textContent;
+                                                copyUrlBtn.textContent = '✓ Скопировано!';
+                                                copyUrlBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                                                copyUrlBtn.classList.add('bg-green-500');
+                                                
+                                                setTimeout(() => {
+                                                    copyUrlBtn.textContent = originalText;
+                                                    copyUrlBtn.classList.remove('bg-green-500');
+                                                    copyUrlBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                                                }, 2000);
+                                            } catch (err) {
+                                                console.error('Ошибка копирования:', err);
+                                                // Fallback - показываем alert с ссылкой
+                                                alert('Скопируйте эту ссылку:\n\n' + cleanUrl);
+                                            }
+                                        };
+                                    }
+                                    
+                                    // Также можно кликнуть на input для копирования
+                                    browserUrlInput.onclick = function() {
+                                        this.select();
+                                        this.setSelectionRange(0, 99999);
                                     };
                                 }
                             } catch (error) {

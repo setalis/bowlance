@@ -322,9 +322,8 @@ class PhoneVerificationService
         }
 
         // Отправляем подтверждение в Telegram с кнопкой для возврата на сайт
-        // Добавляем параметр return=true и order_id для обработки возврата на ту же страницу
-        $baseUrl = config('app.url');
-        $returnUrl = $baseUrl.'?return=true&order_id='.$orderId;
+        // Используем специальную страницу возврата с поддержкой Android Intent
+        $returnUrl = route('telegram.return', ['order_id' => $orderId]);
         $this->telegramService->sendPhoneVerifiedSuccess($chatId, $verification->phone, $returnUrl, $orderId);
 
         return [

@@ -228,13 +228,28 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400 text-center mb-3">
                         Для лучшего опыта откройте эту страницу в обычном браузере
                     </p>
-                    <button 
-                        type="button" 
-                        id="telegram-open-browser-btn-account"
-                        class="w-full text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:focus:ring-gray-600"
-                    >
-                        Открыть в браузере
-                    </button>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                            <input 
+                                type="text" 
+                                id="telegram-browser-url-account"
+                                readonly
+                                class="flex-1 text-xs bg-transparent border-none text-gray-700 dark:text-gray-300 focus:outline-none"
+                                value=""
+                            />
+                            <button 
+                                type="button" 
+                                id="telegram-copy-url-btn-account"
+                                class="px-3 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                title="Копировать ссылку"
+                            >
+                                📋 Копировать
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                            Скопируйте ссылку и откройте её в обычном браузере (Chrome, Safari и т.д.)
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -583,17 +598,49 @@ function isTelegramWebView() {
                             }
                         }
                         
-                        // Обработчик кнопки "Открыть в браузере"
-                        const openBrowserBtn = document.getElementById('telegram-open-browser-btn-account');
-                        if (openBrowserBtn) {
-                            openBrowserBtn.onclick = function() {
-                                // Правильно формируем URL без параметра return=true
-                                const url = new URL(window.location.href);
-                                url.searchParams.delete('return');
-                                // Если остались параметры, используем их, иначе просто pathname
-                                const cleanUrl = url.search ? url.pathname + url.search : url.pathname;
-                                // Пытаемся открыть в обычном браузере
-                                window.open(cleanUrl, '_blank');
+                        // Настройка ссылки для копирования
+                        const browserUrlInput = document.getElementById('telegram-browser-url-account');
+                        const copyUrlBtn = document.getElementById('telegram-copy-url-btn-account');
+                        
+                        if (openBrowserDiv && browserUrlInput) {
+                            // Формируем полный URL без параметра return
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete('return');
+                            const cleanUrl = url.toString();
+                            
+                            // Устанавливаем значение в input
+                            browserUrlInput.value = cleanUrl;
+                            
+                            // Обработчик кнопки копирования
+                            if (copyUrlBtn) {
+                                copyUrlBtn.onclick = function() {
+                                    browserUrlInput.select();
+                                    browserUrlInput.setSelectionRange(0, 99999); // Для мобильных устройств
+                                    
+                                    try {
+                                        document.execCommand('copy');
+                                        const originalText = copyUrlBtn.textContent;
+                                        copyUrlBtn.textContent = '✓ Скопировано!';
+                                        copyUrlBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                                        copyUrlBtn.classList.add('bg-green-500');
+                                        
+                                        setTimeout(() => {
+                                            copyUrlBtn.textContent = originalText;
+                                            copyUrlBtn.classList.remove('bg-green-500');
+                                            copyUrlBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                                        }, 2000);
+                                    } catch (err) {
+                                        console.error('Ошибка копирования:', err);
+                                        // Fallback - показываем alert с ссылкой
+                                        alert('Скопируйте эту ссылку:\n\n' + cleanUrl);
+                                    }
+                                };
+                            }
+                            
+                            // Также можно кликнуть на input для копирования
+                            browserUrlInput.onclick = function() {
+                                this.select();
+                                this.setSelectionRange(0, 99999);
                             };
                         }
                     } catch (error) {
