@@ -1548,14 +1548,25 @@
                 // Проверяем статус заказа
                 async function checkOrderStatus() {
                     try {
-                        const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${orderIdFromUrl}`, {
+                        console.log('Проверяю статус заказа с ID:', orderIdFromUrl);
+                        const apiUrl = `/api/phone/verification/check-status?order_id=${orderIdFromUrl}`;
+                        console.log('API URL:', apiUrl);
+                        
+                        const checkResponse = await fetch(apiUrl, {
+                            method: 'GET',
                             headers: {
                                 'Accept': 'application/json',
+                                'Content-Type': 'application/json',
                             },
                         });
                         
+                        console.log('Response status:', checkResponse.status);
+                        console.log('Response ok:', checkResponse.ok);
+                        
                         if (!checkResponse.ok) {
-                            throw new Error('Ошибка проверки статуса');
+                            const errorText = await checkResponse.text();
+                            console.error('Ошибка ответа:', errorText);
+                            throw new Error(`Ошибка проверки статуса: ${checkResponse.status} - ${errorText}`);
                         }
                         
                         const statusData = await checkResponse.json();
@@ -1624,27 +1635,38 @@
                                 };
                             }
                         }
-                    } catch (error) {
-                        console.error('Ошибка проверки статуса:', error);
-                        if (banner && bannerIcon && bannerText && bannerClose) {
-                            banner.classList.remove('hidden');
-                            banner.classList.remove('bg-green-50', 'dark:bg-green-900', 'border-green-500', 'bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500');
-                            banner.classList.add('bg-red-50', 'dark:bg-red-900', 'border-red-500');
-                            bannerIcon.innerHTML = `
-                                <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            `;
-                            bannerText.textContent = '❌ Ошибка при проверке статуса заказа. Попробуйте позже.';
-                            bannerText.classList.remove('text-gray-900', 'dark:text-white', 'text-green-800', 'dark:text-green-100', 'text-yellow-800', 'dark:text-yellow-100');
-                            bannerText.classList.add('text-red-800', 'dark:text-red-100');
-                            bannerClose.style.display = 'block';
-                            bannerClose.onclick = function() {
-                                banner.classList.add('hidden');
-                                document.body.style.paddingTop = '0';
-                            };
+                        } catch (error) {
+                            console.error('Ошибка проверки статуса:', error);
+                            
+                            // Показываем детальную информацию об ошибке на странице
+                            let errorMessage = 'Ошибка при проверке статуса заказа.';
+                            if (error.message) {
+                                errorMessage += ' ' + error.message;
+                            }
+                            
+                            // Добавляем блок с детальной информацией об ошибке (только в режиме отладки)
+                            if (banner && bannerIcon && bannerText && bannerClose) {
+                                banner.classList.remove('hidden');
+                                banner.classList.remove('bg-green-50', 'dark:bg-green-900', 'border-green-500', 'bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500');
+                                banner.classList.add('bg-red-50', 'dark:bg-red-900', 'border-red-500');
+                                bannerIcon.innerHTML = `
+                                    <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                `;
+                                bannerText.innerHTML = '❌ ' + errorMessage + '<br><small class="text-xs opacity-75">Order ID: ' + orderIdFromUrl + '</small>';
+                                bannerText.classList.remove('text-gray-900', 'dark:text-white', 'text-green-800', 'dark:text-green-100', 'text-yellow-800', 'dark:text-yellow-100');
+                                bannerText.classList.add('text-red-800', 'dark:text-red-100');
+                                bannerClose.style.display = 'block';
+                                bannerClose.onclick = function() {
+                                    banner.classList.add('hidden');
+                                    document.body.style.paddingTop = '0';
+                                };
+                            }
+                            
+                            // Также показываем уведомление
+                            showNotification('❌ ' + errorMessage, 'error');
                         }
-                    }
                 }
                 
                 // Запускаем проверку статуса
