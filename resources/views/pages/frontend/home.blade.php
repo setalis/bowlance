@@ -7,6 +7,37 @@
 @section('content')
     <!-- Контейнер для уведомлений -->
     <div id="notification-container" class="fixed top-4 right-4 z-50 max-w-md w-full space-y-2" style="display: none;"></div>
+    
+    <!-- Баннер уведомления для Telegram WebView (всегда видимый) -->
+    <div id="telegram-status-banner" class="hidden fixed top-0 left-0 right-0 z-[70] bg-white dark:bg-gray-800 shadow-lg border-b-2 border-orange-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div id="telegram-status-icon" class="flex-shrink-0">
+                        <svg class="animate-spin h-6 w-6 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p id="telegram-status-text" class="text-sm font-medium text-gray-900 dark:text-white">
+                            Проверка статуса заказа...
+                        </p>
+                    </div>
+                </div>
+                <button 
+                    type="button" 
+                    id="telegram-status-close"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    style="display: none;"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Hero Section -->
     <section class="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-20">
@@ -545,6 +576,77 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal статуса верификации для мобильного Telegram -->
+    <div id="telegram-return-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-[60] justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/80 dark:bg-gray-900/90"></div>
+        
+        <div class="relative p-4 w-full max-w-md max-h-full z-[60]">
+            <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800">
+                <!-- Modal header -->
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                    <h3 id="telegram-return-modal-title" class="text-xl font-semibold text-gray-900 dark:text-white">
+                        Статус верификации
+                    </h3>
+                </div>
+                <!-- Modal body -->
+                <div class="p-4 md:p-5 space-y-4">
+                    <div id="telegram-return-loading" class="text-center py-4">
+                        <svg class="animate-spin h-8 w-8 text-orange-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Проверка статуса заказа...</p>
+                    </div>
+                    <div id="telegram-return-success" class="hidden text-center py-4">
+                        <div class="mb-4">
+                            <svg class="w-16 h-16 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">✅ Телефон подтвержден!</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Ваш заказ успешно принят и будет обработан.</p>
+                        <button 
+                            type="button" 
+                            id="telegram-return-close-success"
+                            class="w-full text-white bg-orange-500 hover:bg-orange-600 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-orange-500 dark:hover:bg-orange-600 dark:focus:ring-orange-800"
+                        >
+                            Закрыть
+                        </button>
+                    </div>
+                    <div id="telegram-return-error" class="hidden text-center py-4">
+                        <div class="mb-4">
+                            <svg class="w-16 h-16 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Ошибка верификации</h4>
+                        <p id="telegram-return-error-message" class="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
+                        <button 
+                            type="button" 
+                            id="telegram-return-close-error"
+                            class="w-full text-white bg-red-500 hover:bg-red-600 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-500 dark:hover:bg-red-600 dark:focus:ring-red-800"
+                        >
+                            Закрыть
+                        </button>
+                    </div>
+                    <div id="telegram-return-open-browser" class="hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 text-center mb-3">
+                            Для лучшего опыта откройте эту страницу в обычном браузере
+                        </p>
+                        <button 
+                            type="button" 
+                            id="telegram-open-browser-btn"
+                            class="w-full text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                        >
+                            Открыть в браузере
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1392,11 +1494,212 @@
             }
         }
 
+        // Функция для определения встроенного браузера Telegram
+        function isTelegramWebView() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            // Проверяем User-Agent на наличие признаков Telegram WebView
+            // Telegram WebView обычно содержит "Telegram" в User-Agent
+            // Также проверяем наличие window.TelegramWebApp (официальный API Telegram)
+            return userAgent.includes('Telegram') || 
+                   (typeof window.TelegramWebApp !== 'undefined') ||
+                   (window.navigator && window.navigator.userAgent && window.navigator.userAgent.includes('Telegram'));
+        }
+
         // Обработка возврата на ту же страницу после верификации
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('return') === 'true') {
+                const isTelegram = isTelegramWebView();
                 const savedUrl = localStorage.getItem('verificationReturnUrl');
+                const currentOrderId = localStorage.getItem('currentVerificationOrderId');
+                
+                // Если открыто во встроенном браузере Telegram, показываем модальное окно и баннер
+                if (isTelegram && currentOrderId) {
+                    const modal = document.getElementById('telegram-return-modal');
+                    const loadingDiv = document.getElementById('telegram-return-loading');
+                    const successDiv = document.getElementById('telegram-return-success');
+                    const errorDiv = document.getElementById('telegram-return-error');
+                    const openBrowserDiv = document.getElementById('telegram-return-open-browser');
+                    
+                    // Показываем баннер уведомления на странице (всегда видимый)
+                    const banner = document.getElementById('telegram-status-banner');
+                    const bannerIcon = document.getElementById('telegram-status-icon');
+                    const bannerText = document.getElementById('telegram-status-text');
+                    const bannerClose = document.getElementById('telegram-status-close');
+                    
+                    if (banner) {
+                        banner.classList.remove('hidden');
+                        // Добавляем отступ для контента страницы, чтобы баннер не перекрывал его
+                        document.body.style.paddingTop = banner.offsetHeight + 'px';
+                    }
+                    
+                    if (modal) {
+                        // Показываем модальное окно
+                        modal.classList.remove('hidden');
+                        loadingDiv.classList.remove('hidden');
+                        successDiv.classList.add('hidden');
+                        errorDiv.classList.add('hidden');
+                        
+                        // Проверяем статус заказа
+                        async function checkVerificationStatus() {
+                            try {
+                                const checkResponse = await fetch(`/api/phone/verification/check-status?order_id=${currentOrderId}`, {
+                                    headers: {
+                                        'Accept': 'application/json',
+                                    },
+                                });
+                                
+                                if (!checkResponse.ok) {
+                                    throw new Error('Ошибка проверки статуса');
+                                }
+                                
+                                const statusData = await checkResponse.json();
+                                
+                                loadingDiv.classList.add('hidden');
+                                
+                                if (statusData.success && (statusData.is_verified || statusData.order_status !== 'pending_verification')) {
+                                    // Верификация успешна
+                                    successDiv.classList.remove('hidden');
+                                    openBrowserDiv.classList.remove('hidden');
+                                    
+                                    // Обновляем баннер с успешным сообщением
+                                    if (banner && bannerIcon && bannerText && bannerClose) {
+                                        banner.classList.remove('hidden');
+                                        banner.classList.add('bg-green-50', 'dark:bg-green-900', 'border-green-500');
+                                        bannerIcon.innerHTML = `
+                                            <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        `;
+                                        bannerText.textContent = '✅ Телефон подтвержден! Ваш заказ успешно принят и будет обработан.';
+                                        bannerText.classList.remove('text-gray-900', 'dark:text-white');
+                                        bannerText.classList.add('text-green-800', 'dark:text-green-100');
+                                        bannerClose.style.display = 'block';
+                                        bannerClose.onclick = function() {
+                                            banner.classList.add('hidden');
+                                            document.body.style.paddingTop = '0';
+                                        };
+                                    }
+                                    
+                                    // Очищаем корзину и данные
+                                    cart = [];
+                                    saveCart();
+                                    updateCartDisplay();
+                                    
+                                    // Очищаем все флаги верификации
+                                    localStorage.removeItem('pendingVerificationCheck');
+                                    localStorage.removeItem('currentVerificationOrderId');
+                                    localStorage.removeItem('verificationInProgress');
+                                    localStorage.removeItem('verificationStartedAt');
+                                    localStorage.removeItem('pendingVerificationSuccess');
+                                    localStorage.removeItem('verificationReturnUrl');
+                                    
+                                    // Обработчик закрытия успешного окна
+                                    const closeBtn = document.getElementById('telegram-return-close-success');
+                                    if (closeBtn) {
+                                        closeBtn.onclick = function() {
+                                            modal.classList.add('hidden');
+                                            // Убираем параметр return из URL
+                                            const newUrl = window.location.pathname + window.location.search.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                                            window.history.replaceState({}, '', newUrl || window.location.pathname);
+                                        };
+                                    }
+                                } else {
+                                    // Верификация не завершена или ошибка
+                                    errorDiv.classList.remove('hidden');
+                                    openBrowserDiv.classList.remove('hidden');
+                                    const errorMessage = document.getElementById('telegram-return-error-message');
+                                    if (errorMessage) {
+                                        errorMessage.textContent = 'Верификация еще не завершена. Пожалуйста, завершите процесс подтверждения в Telegram боте.';
+                                    }
+                                    
+                                    // Обновляем баннер с сообщением об ошибке
+                                    if (banner && bannerIcon && bannerText && bannerClose) {
+                                        banner.classList.remove('hidden');
+                                        banner.classList.add('bg-yellow-50', 'dark:bg-yellow-900', 'border-yellow-500');
+                                        bannerIcon.innerHTML = `
+                                            <svg class="h-6 w-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                            </svg>
+                                        `;
+                                        bannerText.textContent = '⚠️ Верификация еще не завершена. Завершите процесс подтверждения в Telegram боте.';
+                                        bannerText.classList.remove('text-gray-900', 'dark:text-white');
+                                        bannerText.classList.add('text-yellow-800', 'dark:text-yellow-100');
+                                        bannerClose.style.display = 'block';
+                                        bannerClose.onclick = function() {
+                                            banner.classList.add('hidden');
+                                            document.body.style.paddingTop = '0';
+                                        };
+                                    }
+                                    
+                                    // Обработчик закрытия окна ошибки
+                                    const closeBtn = document.getElementById('telegram-return-close-error');
+                                    if (closeBtn) {
+                                        closeBtn.onclick = function() {
+                                            modal.classList.add('hidden');
+                                            // Убираем параметр return из URL
+                                            const newUrl = window.location.pathname + window.location.search.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                                            window.history.replaceState({}, '', newUrl || window.location.pathname);
+                                        };
+                                    }
+                                }
+                                
+                                // Обработчик кнопки "Открыть в браузере"
+                                const openBrowserBtn = document.getElementById('telegram-open-browser-btn');
+                                if (openBrowserBtn) {
+                                    openBrowserBtn.onclick = function() {
+                                        const currentUrl = window.location.href.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                                        // Пытаемся открыть в обычном браузере
+                                        window.open(currentUrl, '_blank');
+                                    };
+                                }
+                            } catch (error) {
+                                console.error('Ошибка проверки статуса:', error);
+                                loadingDiv.classList.add('hidden');
+                                errorDiv.classList.remove('hidden');
+                                openBrowserDiv.classList.remove('hidden');
+                                const errorMessage = document.getElementById('telegram-return-error-message');
+                                if (errorMessage) {
+                                    errorMessage.textContent = 'Ошибка при проверке статуса заказа. Попробуйте позже.';
+                                }
+                                
+                                // Обновляем баннер с сообщением об ошибке
+                                if (banner && bannerIcon && bannerText && bannerClose) {
+                                    banner.classList.remove('hidden');
+                                    banner.classList.add('bg-red-50', 'dark:bg-red-900', 'border-red-500');
+                                    bannerIcon.innerHTML = `
+                                        <svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    `;
+                                    bannerText.textContent = '❌ Ошибка при проверке статуса заказа. Попробуйте позже.';
+                                    bannerText.classList.remove('text-gray-900', 'dark:text-white');
+                                    bannerText.classList.add('text-red-800', 'dark:text-red-100');
+                                    bannerClose.style.display = 'block';
+                                    bannerClose.onclick = function() {
+                                        banner.classList.add('hidden');
+                                        document.body.style.paddingTop = '0';
+                                    };
+                                }
+                                
+                                const closeBtn = document.getElementById('telegram-return-close-error');
+                                if (closeBtn) {
+                                    closeBtn.onclick = function() {
+                                        modal.classList.add('hidden');
+                                        const newUrl = window.location.pathname + window.location.search.replace(/[?&]return=true/, '').replace(/^\?/, '');
+                                        window.history.replaceState({}, '', newUrl || window.location.pathname);
+                                    };
+                                }
+                            }
+                        }
+                        
+                        // Запускаем проверку статуса
+                        checkVerificationStatus();
+                    }
+                    return;
+                }
+                
+                // Для обычных браузеров - стандартная логика
                 if (savedUrl) {
                     // Используем BroadcastChannel для связи между вкладками
                     const channel = new BroadcastChannel('verification_channel');
